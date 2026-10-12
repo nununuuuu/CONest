@@ -1,0 +1,23 @@
+name: Fetch upstream source
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone BiliTools 1.4.7
+        run: |
+          git clone https://github.com/btjawa/BiliTools.git upstream
+          git -C upstream checkout 1ebe12c49ca224bb221954f72845b3b8c1aaea25
+          rm -rf upstream/.git
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bilitools-1.4.7-source
+          path: upstream
+          include-hidden-files: true
