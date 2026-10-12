@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -u
-          LOG=/tmp/reconstruct-diagnostics.txt
+          LOG=/tmp/reconstruct-diagnostics.md
           : > "$LOG"
           exec > >(tee -a "$LOG") 2>&1
 
@@ -53,13 +53,14 @@ jobs:
               '/tmp/newfiles.patch.xz': sorted(str(p) for p in Path('.bootstrap').glob('newfiles.patch.xz.b64.part0*')),
           }
 
+          alphabet = set(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
           for dst, parts in groups.items():
               out = bytearray()
               print(f'-- decoding {dst}')
               for name in parts:
                   raw = Path(name).read_bytes()
                   clean = b''.join(raw.split())
-                  filtered = bytes(c for c in clean if c in b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+                  filtered = bytes(c for c in clean if c in alphabet)
                   filtered += b'=' * (-len(filtered) % 4)
                   print(f'{name}: raw={len(raw)} clean={len(clean)} filtered={len(filtered)}')
                   try:
@@ -94,14 +95,13 @@ jobs:
             xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
             test -s /tmp/build.patch
             test -s /tmp/newfiles.patch
-            rm -f reconstruct-diagnostics.txt
             exit 0
           fi
 
-          cp "$LOG" reconstruct-diagnostics.txt
+          cp "$LOG" reconstruct-diagnostics.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add reconstruct-diagnostics.txt
+          git add -f reconstruct-diagnostics.md
           git commit -m 'ci: record patch reconstruction diagnostics' || true
           git push origin HEAD:main || true
           exit 1
