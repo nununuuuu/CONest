@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.bootstrap/READY'
+      - '.github/workflows/publish-v0.0.0.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,7 +26,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .bootstrap/v53-text.patch.xz.b64.part* | tr -d '\r\n\t ' | base64 -d > /tmp/v53-text.patch.xz
+          # Use only the canonical numbered chunks. Do not glob part*, because
+          # the repository also contains part03a and including it corrupts XZ.
+          cat \
+            .bootstrap/v53-text.patch.xz.b64.part00 \
+            .bootstrap/v53-text.patch.xz.b64.part01 \
+            .bootstrap/v53-text.patch.xz.b64.part02 \
+            .bootstrap/v53-text.patch.xz.b64.part03 \
+            .bootstrap/v53-text.patch.xz.b64.part04 \
+            .bootstrap/v53-text.patch.xz.b64.part05 \
+            .bootstrap/v53-text.patch.xz.b64.part06 \
+            | tr -d '\r\n\t ' \
+            | base64 --decode > /tmp/v53-text.patch.xz
           xz -t /tmp/v53-text.patch.xz
           xz -dc /tmp/v53-text.patch.xz > /tmp/v53-text.patch
           test -s /tmp/v53-text.patch
