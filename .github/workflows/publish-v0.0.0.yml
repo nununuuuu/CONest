@@ -3,7 +3,11 @@ name: Publish CONest v0.0.0
 on:
   push:
     branches:
-      - release-v0.0.0-publish
+      - main
+    paths:
+      - '.bootstrap/**'
+      - '.github/workflows/publish-v0.0.0.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,7 +18,7 @@ jobs:
     outputs:
       source_sha: ${{ steps.push.outputs.source_sha }}
     steps:
-      - name: Checkout bootstrap branch
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -23,13 +27,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .bootstrap/patch.xz.b64.part0* > /tmp/build.patch.xz.b64
-          base64 -d /tmp/build.patch.xz.b64 > /tmp/build.patch.xz
-          xz -dc /tmp/build.patch.xz > /tmp/build.patch
 
-          cat .bootstrap/newfiles.patch.xz.b64.part0* > /tmp/newfiles.patch.xz.b64
-          base64 -d /tmp/newfiles.patch.xz.b64 > /tmp/newfiles.patch.xz
+          # Use the intact original split patch instead of the damaged
+          # patch.xz.b64.part* payload that caused "base64: invalid input".
+          cat \
+            .bootstrap/patch.part00.b64 \
+            .bootstrap/patch.part01.b64 \
+            .bootstrap/patch.part02_03.b64 \
+            .bootstrap/patch.part04_05.b64 \
+            .bootstrap/patch.part06_07.b64 \
+            .bootstrap/patch.part08_09.b64 \
+            .bootstrap/patch.part10_11.b64 \
+            .bootstrap/patch.part12_13.b64 \
+            .bootstrap/patch.part14.b64 \
+            | tr -d '\r\n\t ' \
+            | base64 --decode --ignore-garbage > /tmp/build.patch
+
+          cat .bootstrap/newfiles.patch.xz.b64.part0* \
+            | tr -d '\r\n\t ' \
+            | base64 --decode --ignore-garbage > /tmp/newfiles.patch.xz
+          xz -t /tmp/newfiles.patch.xz
           xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
+
+          test -s /tmp/build.patch
+          test -s /tmp/newfiles.patch
 
       - name: Reconstruct CONest v0.0.0 source
         shell: bash
