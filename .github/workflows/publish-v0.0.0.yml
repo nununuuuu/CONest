@@ -26,18 +26,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat \
-            .bootstrap/v53-text.patch.xz.b64.part00 \
-            .bootstrap/v53-text.patch.xz.b64.part01 \
-            .bootstrap/v53-text.patch.xz.b64.part02 \
-            .bootstrap/v53-text.patch.xz.b64.part03a \
-            .bootstrap/v53-text.patch.xz.b64.part03b \
-            .bootstrap/v53-text.patch.xz.b64.part04 \
-            .bootstrap/v53-text.patch.xz.b64.part05a \
-            .bootstrap/v53-text.patch.xz.b64.part05b \
-            .bootstrap/v53-text.patch.xz.b64.part06 \
-            | tr -d '\r\n\t ' \
-            | base64 --decode > /tmp/v53-text.patch.xz
+          TMP_B64=/tmp/v53-text.patch.xz.b64
+          : > "$TMP_B64"
+
+          cat .bootstrap/v53-text.patch.xz.b64.part00 >> "$TMP_B64"
+          cat .bootstrap/v53-text.patch.xz.b64.part01 >> "$TMP_B64"
+          cat .bootstrap/v53-text.patch.xz.b64.part02 >> "$TMP_B64"
+
+          # part03 in the old bootstrap payload is damaged. Use the two
+          # independently verified halves instead.
+          cat .bootstrap/v53-text.patch.xz.b64.part03a >> "$TMP_B64"
+          cat .bootstrap/v53-text.patch.xz.b64.part03b >> "$TMP_B64"
+
+          cat .bootstrap/v53-text.patch.xz.b64.part04 >> "$TMP_B64"
+
+          # Prefer a verified part05b when present. During recovery, part05a
+          # was already verified; the original part05 remains only as a
+          # fallback source for its second 10,000-byte half.
+          cat .bootstrap/v53-text.patch.xz.b64.part05a >> "$TMP_B64"
+          if [ -f .bootstrap/v53-text.patch.xz.b64.part05b ]; then
+            cat .bootstrap/v53-text.patch.xz.b64.part05b >> "$TMP_B64"
+          else
+            tail -c +10001 .bootstrap/v53-text.patch.xz.b64.part05 >> "$TMP_B64"
+          fi
+
+          cat .bootstrap/v53-text.patch.xz.b64.part06 >> "$TMP_B64"
+
+          tr -d '\r\n\t ' < "$TMP_B64" | base64 --decode > /tmp/v53-text.patch.xz
           xz -t /tmp/v53-text.patch.xz
           xz -dc /tmp/v53-text.patch.xz > /tmp/v53-text.patch
           test -s /tmp/v53-text.patch
