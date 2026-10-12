@@ -1,0 +1,35 @@
+name: Normalize release version
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/normalize-release-version.yml']
+permissions:
+  contents: write
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reuse verified build and publish v0.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-assets
+          gh release download v0.0.0-v53 --dir release-assets
+          cd release-assets
+          sha256sum -c SHA256SUMS.txt
+          for asset in CONest-dist-package.zip CONest-Extension.zip CONest-Portable.zip CONest-Setup.exe; do
+            test -s "$asset"
+          done
+          unzip -t CONest-dist-package.zip
+          unzip -t CONest-Extension.zip
+          unzip -t CONest-Portable.zip
+          payload_sha=$(gh api repos/$GH_REPO/git/ref/tags/v0.0.0-v53 --jq .object.sha)
+          test "$payload_sha" = '3ad9dbee4d9679403451f45e70a19b6df10ddd97'
+          gh api --method PATCH repos/$GH_REPO/git/refs/tags/v0.0.0 -f sha="$payload_sha" -F force=false
+          gh release upload v0.0.0 ./* --clobber
+          gh release edit v0.0.0 --title 'CONest v0.0.0' --notes 'Built using build.bat. Includes complete dist-package, installer, portable package, extension, and SHA-256 checksums.' --latest
+          gh release view v0.0.0 --json assets --jq '.assets[].name'
+          gh release delete v0.0.0-v53 --yes --cleanup-tag
