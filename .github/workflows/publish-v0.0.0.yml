@@ -27,35 +27,27 @@ jobs:
         run: |
           set -euo pipefail
           TMP_B64=/tmp/v53-text.patch.xz.b64
+          PART05B=/tmp/v53-part05b.b64
           : > "$TMP_B64"
+
+          cat .bootstrap/recovery05b500/chunk{00..19} > "$PART05B"
+          echo 'd142d274654608865855d0d1110cd7e7a4949864ab350544623186f5e7859027  /tmp/v53-part05b.b64' | sha256sum -c -
 
           cat .bootstrap/v53-text.patch.xz.b64.part00 >> "$TMP_B64"
           cat .bootstrap/v53-text.patch.xz.b64.part01 >> "$TMP_B64"
           cat .bootstrap/v53-text.patch.xz.b64.part02 >> "$TMP_B64"
-
-          # part03 in the old bootstrap payload is damaged. Use the two
-          # independently verified halves instead.
           cat .bootstrap/v53-text.patch.xz.b64.part03a >> "$TMP_B64"
           cat .bootstrap/v53-text.patch.xz.b64.part03b >> "$TMP_B64"
-
           cat .bootstrap/v53-text.patch.xz.b64.part04 >> "$TMP_B64"
-
-          # Prefer a verified part05b when present. During recovery, part05a
-          # was already verified; the original part05 remains only as a
-          # fallback source for its second 10,000-byte half.
           cat .bootstrap/v53-text.patch.xz.b64.part05a >> "$TMP_B64"
-          if [ -f .bootstrap/v53-text.patch.xz.b64.part05b ]; then
-            cat .bootstrap/v53-text.patch.xz.b64.part05b >> "$TMP_B64"
-          else
-            tail -c +10001 .bootstrap/v53-text.patch.xz.b64.part05 >> "$TMP_B64"
-          fi
-
+          cat "$PART05B" >> "$TMP_B64"
           cat .bootstrap/v53-text.patch.xz.b64.part06 >> "$TMP_B64"
 
           tr -d '\r\n\t ' < "$TMP_B64" | base64 --decode > /tmp/v53-text.patch.xz
           xz -t /tmp/v53-text.patch.xz
           xz -dc /tmp/v53-text.patch.xz > /tmp/v53-text.patch
           test -s /tmp/v53-text.patch
+          echo '794e13d7c8514d41d92f819bface93611fef7e402a755281f374917f979ee4cd  /tmp/v53-text.patch' | sha256sum -c -
 
       - name: Reconstruct CONest source
         shell: bash
