@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "CONest Download Bridge",
+  "version": "0.0.0",
+  "description": "CONest Bilibili download sidebar with local task list.",
+  "permissions": [
+    "storage",
+    "cookies",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://www.bilibili.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.bilibili.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://127.0.0.1:* http://localhost:*"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "CONest",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzdz8CZfvWpmsEnvTnmjX2ToRJPB8Oy6FTmlL24yuurz36n/cgL0DKRJ2KVoEptE9W7IfuRxmZE4yC8CA3PTX5dlxuIcpmCiLtedFV0SROWs69buyFVHg6PWDmUg5uBhY3IfZYJLnPLduY7xIP/RynXHiMdsFqHyUH/62sj2YwVOlkU45n1vG4EMaQoM321ktI6dPYeA/TpMuD8sI8ZvxyuRILmmSq+zppXPLC8raTgFuaflquQstO+Iy4T+A5W0C/ltiLz1ZL5l0b6NnccZc4nvbVq3WSNk+Xrib3Rv4BjyvV6XmdxOKmxpsgpq3rqkjqcEwWQQpCZkxuQ20WDTqcQIDAQAB"
+}

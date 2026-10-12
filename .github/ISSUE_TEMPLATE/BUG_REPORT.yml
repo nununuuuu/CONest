@@ -1,0 +1,92 @@
+name: 🐞 Bug report / 反馈 Bug
+description: Bug report / 反馈 Bug
+title: "[Bug] "
+labels: ["type: bug", "status: needs triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## First of all
+        感谢您愿意反馈 bug！在提交问题前，请先阅读以下几点：
+        1. <u>**标题应简要概述主题，不可留空，同时保留模板中已有前缀。**</u>
+        2. 请确保没有重复的 Issue / Discussion。
+        3. 请确保这是 CONest 的问题，而不是其他原因。对于其他原因，您可以发起 [Discussion](https://github.com/nununuuuu/CONest/discussions/new/choose)
+        4. 请确保您已阅读 [Contributing](https://github.com/nununuuuu/CONest/blob/master/CONTRIBUTING.md)。
+        
+        Thank you for reporting bugs! Before submitting, please read the following points:
+        1. <u>**The title should summarize the topic, CANNOT be left blank, while keeping the existing prefix.**</u>
+        2. Make sure there are no duplicate issues or discussions.
+        3. Make sure it's CONest' problem and not something else.
+        4. Make sure you have read the [Contributing](https://github.com/nununuuuu/CONest/blob/master/CONTRIBUTING.md).
+  - type: textarea
+    attributes:
+      label: CONest version / CONest 版本
+      description: |
+        Please use the exact version code.
+
+        请使用确切的版本号。
+      placeholder: v1.x.x
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Download link / 下载的资源链接
+      description: |
+        This can be a URL, or AV / BV number, etc.
+
+        可以是 URL 链接，或是 AV / BV 号等。
+
+  - type: textarea
+    attributes:
+      label: Describe the bug / 问题描述
+      description: |
+        Please describe the problem as detailed as possible, as this will help us better solve the problem.
+
+        请尽可能详细的描述问题，这有助于我们更好的解决问题。
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: System type / 系统类型
+      description: |
+        For Linux, Please add your distribution and version in Reproduction.
+
+        对于 Linux, 请在“复现步骤”中添加你的发行版与版本。
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS M-series Chip
+        - macOS Intel Chip
+        - Linux
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Reproduction / 复现步骤
+      description: |
+        How to reproduce the problem you ran into?
+
+        如何复现你提到的问题？
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Logs / 日志
+      description: |
+        Please upload your logs. DO NOT paste the log text directly.
+
+        请上传你的日志文件。不要直接粘贴日志文本。
+
+        Windows: %LOCALAPPDATA%\com.nununuuuu.conest\logs
+
+        macOS: $HOME/Library/Logs/com.nununuuuu.conest
+
+        Linux: $HOME/.local/share/com.nununuuuu.conest/logs
+
+    validations:
+      required: true

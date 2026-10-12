@@ -1,0 +1,478 @@
+#conest-extension-root {
+  --conest-accent: #22b8c8;
+  --conest-panel: #18191c;
+  --conest-panel-2: #232529;
+  --conest-border: #33363d;
+  --conest-text: #e8eaed;
+  --conest-muted: #9aa0a6;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--conest-text);
+}
+#conest-extension-root * { box-sizing: border-box; }
+#conest-extension-root button { border: 0; cursor: pointer; font: inherit; }
+#conest-extension-root .conest-tab {
+  pointer-events: auto;
+  position: fixed;
+  right: 0;
+  bottom: 42px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 94px;
+  height: 42px;
+  padding: 0 12px 0 9px;
+  border-radius: 16px 0 0 16px;
+  background: var(--conest-accent);
+  color: #102126;
+  font-weight: 700;
+  box-shadow: 0 7px 24px rgba(0,0,0,.28);
+  user-select: none;
+  touch-action: none;
+}
+#conest-extension-root .conest-tab-mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #202226;
+  color: var(--conest-accent);
+  font-size: 15px;
+  font-weight: 800;
+}
+#conest-extension-root .conest-panel {
+  pointer-events: auto;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(360px, 92vw);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--conest-panel);
+  border-left: 1px solid var(--conest-border);
+  box-shadow: -12px 0 32px rgba(0,0,0,.30);
+  transform: translateX(105%);
+  transition: transform .2s ease;
+}
+#conest-extension-root.open .conest-panel { transform: translateX(0); }
+#conest-extension-root.open .conest-tab { right: min(360px, 92vw); }
+#conest-extension-root .conest-header {
+  height: 58px;
+  padding: 0 14px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--conest-border);
+}
+#conest-extension-root .conest-brand { display: flex; align-items: center; gap: 9px; font-size: 17px; }
+#conest-extension-root .conest-connection-dot { width: 9px; height: 9px; border-radius: 50%; background: #6b7078; }
+#conest-extension-root .conest-connection-dot.online { background: #43d17a; box-shadow: 0 0 0 3px rgba(67,209,122,.12); }
+#conest-extension-root .conest-close,
+#conest-extension-root .conest-refresh {
+  color: var(--conest-muted);
+  background: transparent;
+}
+#conest-extension-root .conest-close { width: 34px; height: 34px; font-size: 24px; border-radius: 8px; }
+#conest-extension-root .conest-close:hover,
+#conest-extension-root .conest-refresh:hover { background: var(--conest-panel-2); color: var(--conest-text); }
+#conest-extension-root .conest-actions { padding: 12px; border-bottom: 1px solid var(--conest-border); }
+#conest-extension-root .conest-actions > button {
+  display: block;
+  width: 100%;
+  margin-bottom: 7px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--conest-panel-2);
+  color: var(--conest-text);
+  text-align: left;
+}
+#conest-extension-root .conest-actions > button:hover { outline: 1px solid var(--conest-accent); }
+#conest-extension-root .conest-status { min-height: 18px; padding: 2px 2px 0; color: var(--conest-muted); font-size: 12px; }
+#conest-extension-root .conest-status.error { color: #ff7373; }
+#conest-extension-root .conest-tasks-section { min-height: 0; display: flex; flex: 1; flex-direction: column; }
+#conest-extension-root .conest-section-title {
+  height: 45px;
+  padding: 0 14px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 650;
+}
+#conest-extension-root .conest-task-tools { display: flex; align-items: center; gap: 6px; color: var(--conest-muted); }
+#conest-extension-root .conest-task-count { min-width: 22px; text-align: right; font-size: 12px; font-weight: 500; }
+#conest-extension-root .conest-refresh { width: 30px; height: 30px; border-radius: 8px; font-size: 18px; }
+#conest-extension-root .conest-task-list { flex: 1; overflow: auto; padding: 0 10px 12px; }
+#conest-extension-root .conest-task-empty { padding: 28px 10px; color: var(--conest-muted); text-align: center; font-size: 13px; }
+#conest-extension-root .conest-task {
+  display: flex;
+  gap: 10px;
+  min-height: 66px;
+  margin-bottom: 7px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--conest-panel-2);
+}
+#conest-extension-root .conest-task:hover { border-color: #3a3e46; }
+#conest-extension-root .conest-task-cover-wrap { flex: 0 0 78px; height: 48px; }
+#conest-extension-root .conest-task-cover { width: 78px; height: 48px; object-fit: cover; border-radius: 7px; background: #30333a; }
+#conest-extension-root .conest-task-cover.placeholder { background: #30333a; }
+#conest-extension-root .conest-task-body { min-width: 0; flex: 1; }
+#conest-extension-root .conest-task-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--conest-text);
+  font-size: 13px;
+  line-height: 18px;
+}
+#conest-extension-root .conest-task-meta { margin-top: 4px; display: flex; gap: 8px; align-items: center; color: var(--conest-muted); font-size: 11px; }
+#conest-extension-root .conest-task-state { color: var(--conest-accent); }
+#conest-extension-root .state-failed,
+#conest-extension-root .state-cancelled { color: #ff7373; }
+#conest-extension-root .state-completed { color: #55d98a; }
+#conest-extension-root .conest-task-list::-webkit-scrollbar { width: 7px; }
+#conest-extension-root .conest-task-list::-webkit-scrollbar-thumb { border-radius: 9px; background: #3b3e45; }
+
+#conest-extension-root .conest-task-start {
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--conest-accent);
+  color: #082b31;
+  font-size: 11px;
+  font-weight: 700;
+}
+#conest-extension-root .conest-task-start:disabled { opacity: .6; cursor: default; }
+#conest-extension-root .conest-progress {
+  height: 4px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #34373d;
+}
+#conest-extension-root .conest-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--conest-accent);
+  transition: width .25s ease;
+}
+#conest-extension-root .conest-progress-text {
+  margin-top: 2px;
+  color: var(--conest-muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+
+#conest-extension-root .conest-task-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 7px;
+}
+#conest-extension-root .conest-task-settings,
+#conest-extension-root .conest-task-start {
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+#conest-extension-root .conest-task-settings {
+  background: #34373d;
+  color: var(--conest-text);
+}
+#conest-extension-root .conest-task-settings:hover {
+  outline: 1px solid var(--conest-accent);
+}
+#conest-extension-root .conest-task-start {
+  background: var(--conest-accent);
+  color: #082b31;
+}
+/* v53 follow-up: backlog remove action mirrors CONest's trash action. */
+#conest-extension-root .conest-task-remove {
+  width: 27px;
+  min-width: 27px;
+  height: 27px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 6px;
+  background: #34373d;
+  color: var(--conest-muted);
+}
+#conest-extension-root .conest-task-remove:hover {
+  color: #ff7373;
+  outline: 1px solid rgba(255,115,115,.55);
+}
+#conest-extension-root .conest-task-remove:disabled { opacity: .55; cursor: default; }
+#conest-extension-root .conest-task-remove svg { width: 14px; height: 14px; fill: currentColor; }
+
+#conest-extension-root .conest-clear-completed {
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0 7px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--conest-muted);
+  font-size: 11px;
+}
+#conest-extension-root .conest-clear-completed:hover { background: var(--conest-panel-2); color: var(--conest-text); }
+#conest-extension-root .conest-clear-completed:disabled { opacity: .55; cursor: default; }
+
+/* CONest download-setting overlay.
+   Order and available items follow src/components/SearchPage/Popup.vue. */
+#conest-extension-root .conest-settings-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--conest-panel);
+  color: #f2f4f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+}
+
+#conest-extension-root .conest-settings-panel *,
+#conest-extension-root .conest-settings-panel *::before,
+#conest-extension-root .conest-settings-panel *::after {
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#conest-extension-root .conest-settings-panel[hidden] {
+  display: none !important;
+}
+
+#conest-extension-root .conest-settings-header,
+#conest-extension-root .conest-settings-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--conest-panel);
+  color: #f2f4f5;
+}
+
+#conest-extension-root .conest-settings-header {
+  min-height: 52px;
+  border-bottom: 1px solid var(--conest-border);
+}
+
+#conest-extension-root .conest-settings-header strong {
+  color: #f5f7f8 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 20px !important;
+  opacity: 1 !important;
+}
+
+#conest-extension-root .conest-settings-close {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: transparent;
+  color: #c7cbd0 !important;
+  font-size: 20px !important;
+  font-weight: 500;
+  line-height: 30px;
+}
+
+#conest-extension-root .conest-settings-close:hover {
+  background: var(--conest-panel-2);
+  color: #fff !important;
+}
+
+#conest-extension-root .conest-settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 14px 12px;
+  scrollbar-color: #454950 transparent;
+  scrollbar-width: thin;
+}
+
+#conest-extension-root .conest-settings-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+#conest-extension-root .conest-settings-body::-webkit-scrollbar-thumb {
+  border-radius: 9px;
+  background: #454950;
+}
+
+#conest-extension-root .conest-setting-section {
+  padding: 11px 0 12px;
+  border-bottom: 1px solid #363940;
+  color: #f2f4f5;
+}
+
+#conest-extension-root .conest-setting-section h4 {
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  color: #f5f7f8 !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 20px !important;
+  letter-spacing: 0 !important;
+  opacity: 1 !important;
+}
+
+#conest-extension-root .conest-setting-desc {
+  margin: -2px 0 8px;
+  color: #b8bdc4 !important;
+  font-size: 12px !important;
+  font-weight: 450;
+  line-height: 17px;
+}
+
+#conest-extension-root .conest-setting-link {
+  color: #35c7d8 !important;
+  text-decoration: none;
+}
+
+#conest-extension-root .conest-setting-link:hover {
+  text-decoration: underline;
+}
+
+#conest-extension-root .conest-setting-choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+#conest-extension-root .conest-setting-choice {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 2px solid transparent !important;
+  border-radius: 8px;
+  background: #24272c !important;
+  color: #f0f2f4 !important;
+  font-family: inherit !important;
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+  line-height: 16px !important;
+  letter-spacing: 0 !important;
+  opacity: 1 !important;
+  white-space: nowrap;
+}
+
+#conest-extension-root .conest-setting-choice:hover {
+  background: #2b2e34 !important;
+}
+
+#conest-extension-root .conest-setting-choice.selected {
+  border-color: var(--conest-accent) !important;
+  background: #20282c !important;
+  color: #fff !important;
+}
+
+#conest-extension-root .conest-setting-inline-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+#conest-extension-root .conest-setting-select,
+#conest-extension-root .conest-setting-date {
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid #3b3f46 !important;
+  border-radius: 8px;
+  outline: none;
+  background: #202328 !important;
+  color: #f0f2f4 !important;
+  font-family: inherit !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  line-height: 18px !important;
+  opacity: 1 !important;
+  color-scheme: dark;
+}
+
+#conest-extension-root .conest-setting-select-inline {
+  width: auto;
+  max-width: 150px;
+}
+
+#conest-extension-root .conest-setting-date-inline {
+  width: 132px;
+}
+
+#conest-extension-root .conest-setting-select option {
+  background: #202328;
+  color: #f0f2f4;
+}
+
+#conest-extension-root .conest-setting-media-bar {
+  margin-top: 10px;
+  padding: 8px;
+  border: 2px solid var(--conest-accent);
+  border-radius: 11px;
+  background: #1b1e22;
+}
+
+#conest-extension-root .conest-settings-footer {
+  min-height: 58px;
+  border-top: 1px solid var(--conest-border);
+  justify-content: flex-end;
+}
+
+#conest-extension-root .conest-settings-cancel,
+#conest-extension-root .conest-settings-save {
+  min-width: 68px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-family: inherit !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  line-height: 18px !important;
+  opacity: 1 !important;
+}
+
+#conest-extension-root .conest-settings-cancel {
+  background: #2a2d32 !important;
+  color: #f0f2f4 !important;
+}
+
+#conest-extension-root .conest-settings-save {
+  background: var(--conest-accent) !important;
+  color: #082b31 !important;
+}
+
+#conest-extension-root .conest-settings-save:disabled {
+  opacity: .55 !important;
+  cursor: default;
+}
+
+#conest-extension-root .conest-setting-empty {
+  padding: 24px 8px;
+  text-align: center;
+  color: #b8bdc4 !important;
+  font-size: 13px !important;
+  line-height: 19px;
+}

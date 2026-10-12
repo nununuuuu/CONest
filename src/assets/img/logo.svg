@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182 44" role="img" aria-label="CONest">
+  <style>
+    @keyframes draw { from { stroke-dashoffset: 420; } to { stroke-dashoffset: 0; } }
+    @keyframes fillIn { 0%, 55% { fill-opacity: 0; } 100% { fill-opacity: 1; } }
+    .word {
+      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+      font-size: 39px;
+      font-weight: 400;
+      letter-spacing: -1.4px;
+      fill: #22B8C8;
+      fill-opacity: 0;
+      stroke: #22B8C8;
+      stroke-width: 0.8px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 420;
+      stroke-dashoffset: 420;
+      animation: draw 1.65s cubic-bezier(.6,0,.2,1) forwards,
+                 fillIn 1.65s cubic-bezier(.6,0,.2,1) forwards;
+    }
+  </style>
+  <text class="word" x="1" y="36">CONest</text>
+</svg>
