@@ -1,0 +1,37 @@
+name: Verify recovery payload
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-recovery.yml']
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            .bootstrap/v53-text.patch.xz.b64.part00 \
+            .bootstrap/v53-text.patch.xz.b64.part01 \
+            .bootstrap/v53-text.patch.xz.b64.part02 \
+            .bootstrap/v53-text.patch.xz.b64.part03a \
+            .bootstrap/v53-text.patch.xz.b64.part03b \
+            .bootstrap/v53-text.patch.xz.b64.part04 \
+            .bootstrap/v53-text.patch.xz.b64.part05a \
+            .bootstrap/v53-text.patch.xz.b64.part05b \
+            .bootstrap/v53-text.patch.xz.b64.part06
+          cat \
+            .bootstrap/v53-text.patch.xz.b64.part00 \
+            .bootstrap/v53-text.patch.xz.b64.part01 \
+            .bootstrap/v53-text.patch.xz.b64.part02 \
+            .bootstrap/v53-text.patch.xz.b64.part03a \
+            .bootstrap/v53-text.patch.xz.b64.part03b \
+            .bootstrap/v53-text.patch.xz.b64.part04 \
+            .bootstrap/v53-text.patch.xz.b64.part05a \
+            .bootstrap/v53-text.patch.xz.b64.part05b \
+            .bootstrap/v53-text.patch.xz.b64.part06 \
+            | tr -d '\r\n\t ' | base64 --decode > /tmp/p.xz
+          xz -tv /tmp/p.xz
