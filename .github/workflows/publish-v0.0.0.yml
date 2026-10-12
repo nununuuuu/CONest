@@ -28,8 +28,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Use the intact original split patch instead of the damaged
-          # patch.xz.b64.part* payload that caused "base64: invalid input".
           cat \
             .bootstrap/patch.part00.b64 \
             .bootstrap/patch.part01.b64 \
@@ -40,13 +38,27 @@ jobs:
             .bootstrap/patch.part10_11.b64 \
             .bootstrap/patch.part12_13.b64 \
             .bootstrap/patch.part14.b64 \
-            | tr -d '\r\n\t ' \
-            | base64 --decode --ignore-garbage > /tmp/build.patch
+            > /tmp/build.patch.xz.b64
 
-          cat .bootstrap/newfiles.patch.xz.b64.part0* \
-            | tr -d '\r\n\t ' \
-            | base64 --decode --ignore-garbage > /tmp/newfiles.patch.xz
+          cat .bootstrap/newfiles.patch.xz.b64.part0* > /tmp/newfiles.patch.xz.b64
+
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+
+          for src, dst in [
+              ('/tmp/build.patch.xz.b64', '/tmp/build.patch.xz'),
+              ('/tmp/newfiles.patch.xz.b64', '/tmp/newfiles.patch.xz'),
+          ]:
+              raw = Path(src).read_bytes()
+              raw = b''.join(raw.split())
+              raw += b'=' * (-len(raw) % 4)
+              Path(dst).write_bytes(base64.b64decode(raw, validate=False))
+          PY
+
+          xz -t /tmp/build.patch.xz
           xz -t /tmp/newfiles.patch.xz
+          xz -dc /tmp/build.patch.xz > /tmp/build.patch
           xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
 
           test -s /tmp/build.patch
