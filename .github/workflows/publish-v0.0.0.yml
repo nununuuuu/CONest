@@ -47,7 +47,8 @@ jobs:
           $text = Get-Content -Raw -Encoding UTF8 $cargo
           $pattern = '(?ms)(^\[package\]\s*.*?^version\s*=\s*)"[^"]*"'
           if (-not [regex]::IsMatch($text, $pattern)) { throw 'Cargo package version not found' }
-          $text = [regex]::Replace($text, $pattern, { param($m) $m.Groups[1].Value + '"' + $version + '"' }, 1)
+          $matcher = [regex]::new($pattern)
+          $text = $matcher.Replace($text, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $m.Groups[1].Value + '"' + $version + '"' }, 1)
           [IO.File]::WriteAllText((Join-Path $PWD $cargo), $text, [Text.UTF8Encoding]::new($false))
 
       - name: Setup Node.js
