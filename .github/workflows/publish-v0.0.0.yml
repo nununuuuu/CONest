@@ -120,9 +120,22 @@ jobs:
           git fetch origin main
           git checkout main
           git reset --hard origin/main
+
+          # GitHub App token cannot create/update workflow files. Preserve the
+          # repository's existing workflows byte-for-byte while replacing the
+          # rest of the bootstrap tree with the reconstructed CONest source.
+          rm -rf /tmp/preserved-workflows
+          mkdir -p /tmp/preserved-workflows
+          cp -a .github/workflows /tmp/preserved-workflows/workflows
+
           git rm -r --ignore-unmatch .
           git clean -fdx
-          rsync -a --exclude='.git' /tmp/source/ ./
+          rsync -a --exclude='.git' --exclude='.github/workflows/***' /tmp/source/ ./
+
+          mkdir -p .github
+          rm -rf .github/workflows
+          cp -a /tmp/preserved-workflows/workflows .github/workflows
+
           git add -A
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
