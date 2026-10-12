@@ -17,7 +17,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir release-assets
-          gh release download v0.0.0-v53 --dir release-assets
+          gh release download v0.0.0 --dir release-assets
           cd release-assets
           sha256sum -c SHA256SUMS.txt
           for asset in CONest-dist-package.zip CONest-Extension.zip CONest-Portable.zip CONest-Setup.exe; do
@@ -26,10 +26,11 @@ jobs:
           unzip -t CONest-dist-package.zip
           unzip -t CONest-Extension.zip
           unzip -t CONest-Portable.zip
-          payload_sha=$(gh api repos/$GH_REPO/git/ref/tags/v0.0.0-v53 --jq .object.sha)
-          test "$payload_sha" = '3ad9dbee4d9679403451f45e70a19b6df10ddd97'
+          payload_sha='3ad9dbee4d9679403451f45e70a19b6df10ddd97'
+          echo '9fb1d98a3fb34147bff317e9d3877a53bdf2a8ee7de3083d2664f8edbb9dd98d  CONest-dist-package.zip' | sha256sum -c -
           gh api --method PATCH repos/$GH_REPO/git/refs/tags/v0.0.0 -f sha="$payload_sha" -F force=false
-          gh release upload v0.0.0 ./* --clobber
           gh release edit v0.0.0 --title 'CONest v0.0.0' --notes 'Built using build.bat. Includes complete dist-package, installer, portable package, extension, and SHA-256 checksums.' --latest
           gh release view v0.0.0 --json assets --jq '.assets[].name'
-          gh release delete v0.0.0-v53 --yes --cleanup-tag
+          if gh release view v0.0.0-v53 >/dev/null 2>&1; then
+            gh release delete v0.0.0-v53 --yes --cleanup-tag
+          fi
