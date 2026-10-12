@@ -1,165 +1,27 @@
-name: Publish CONest v0.0.0
+name: Publish CONest v53
 
 on:
   push:
     branches: [main]
     paths:
-      - '.bootstrap/READY'
       - '.github/workflows/publish-v0.0.0.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: conest-v53-release
+  cancel-in-progress: false
+
 jobs:
-  prepare-source:
-    runs-on: ubuntu-latest
-    outputs:
-      source_sha: ${{ steps.publish.outputs.source_sha }}
-    steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Reconstruct v53 patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          TMP_B64=/tmp/v53-text.patch.xz.b64
-          PART05B=/tmp/v53-part05b.b64
-          : > "$TMP_B64"
-
-          cat .bootstrap/recovery05b500/chunk{00..19} > "$PART05B"
-          echo 'd142d274654608865855d0d1110cd7e7a4949864ab350544623186f5e7859027  /tmp/v53-part05b.b64' | sha256sum -c -
-
-          cat .bootstrap/v53-text.patch.xz.b64.part00 >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part01 >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part02 >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part03a >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part03b >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part04 >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part05a >> "$TMP_B64"
-          cat "$PART05B" >> "$TMP_B64"
-          cat .bootstrap/v53-text.patch.xz.b64.part06 >> "$TMP_B64"
-
-          tr -d '\r\n\t ' < "$TMP_B64" | base64 --decode > /tmp/v53-text.patch.xz
-          xz -t /tmp/v53-text.patch.xz
-          xz -dc /tmp/v53-text.patch.xz > /tmp/v53-text.patch
-          test -s /tmp/v53-text.patch
-          echo '794e13d7c8514d41d92f819bface93611fef7e402a755281f374917f979ee4cd  /tmp/v53-text.patch' | sha256sum -c -
-
-      - name: Reconstruct CONest source
-        shell: bash
-        run: |
-          set -euo pipefail
-          git clone --no-checkout https://github.com/btjawa/BiliTools.git /tmp/source
-          git -C /tmp/source checkout 1ebe12c49ca224bb221954f72845b3b8c1aaea25
-          git -C /tmp/source apply --check /tmp/v53-text.patch
-          git -C /tmp/source apply /tmp/v53-text.patch
-
-          cd /tmp/source/src-tauri/binaries/linux
-          for f in bilitools-*; do
-            mv "$f" "${f/bilitools-/conest-}"
-          done
-
-      - name: Rebuild CONest icons
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq librsvg2-bin imagemagick
-          cd /tmp/source
-          SVG=src/assets/img/icon.svg
-          mkdir -p src-tauri/icons extension/icons /tmp/conest-icons
-          rsvg-convert -w 32  -h 32  "$SVG" -o src-tauri/icons/32x32.png
-          rsvg-convert -w 64  -h 64  "$SVG" -o src-tauri/icons/64x64.png
-          rsvg-convert -w 128 -h 128 "$SVG" -o src-tauri/icons/128x128.png
-          rsvg-convert -w 256 -h 256 "$SVG" -o src-tauri/icons/128x128@2x.png
-          rsvg-convert -w 512 -h 512 "$SVG" -o src-tauri/icons/icon.png
-          for s in 16 32 48 128; do
-            rsvg-convert -w "$s" -h "$s" "$SVG" -o "extension/icons/icon${s}.png"
-          done
-          for s in 16 32 48 64 128 256; do
-            rsvg-convert -w "$s" -h "$s" "$SVG" -o "/tmp/conest-icons/icon${s}.png"
-          done
-          convert /tmp/conest-icons/icon16.png /tmp/conest-icons/icon32.png /tmp/conest-icons/icon48.png /tmp/conest-icons/icon64.png /tmp/conest-icons/icon128.png /tmp/conest-icons/icon256.png src-tauri/icons/icon.ico
-
-      - name: Validate reconstructed source
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd /tmp/source
-          test -f build.bat
-          test -f extension/manifest.json
-          test -f native-host/Cargo.toml
-          test -f native-host/src/main.rs
-          test -f src-tauri/src/services/local_api.rs
-          test -f src-tauri/src/native_messaging.rs
-          test -f src/i18n/locales/zh-TW.json
-          test -f src-tauri/icons/icon.ico
-          test -f extension/icons/icon128.png
-          node -e "const p=require('./package.json'); if(p.version!=='0.0.0') process.exit(1)"
-          node -e "const p=require('./src-tauri/tauri.conf.json'); if(p.productName!=='CONest'||p.version!=='0.0.0'||p.identifier!=='com.nununuuuu.conest') process.exit(1)"
-          node --check extension/background.js
-          node --check extension/content.js
-          if find . -type f \( -name 'CONest-updater.key' -o -name '*.key' \) ! -name '*.key.pub' | grep -q .; then
-            echo 'Private key file detected; refusing to publish.' >&2
-            exit 1
-          fi
-          if grep -RIlE 'minisign (encrypted|unencrypted) secret key' . --exclude-dir=.git | grep -q .; then
-            echo 'Private signing key material detected; refusing to publish.' >&2
-            exit 1
-          fi
-
-      - name: Publish source directly to main
-        id: publish
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch origin main
-          git checkout main
-          git reset --hard origin/main
-
-          # GitHub App token cannot create/update workflow files. Preserve the
-          # repository's existing workflows byte-for-byte while replacing the
-          # rest of the bootstrap tree with the reconstructed CONest source.
-          rm -rf /tmp/preserved-workflows
-          mkdir -p /tmp/preserved-workflows
-          cp -a .github/workflows /tmp/preserved-workflows/workflows
-
-          git rm -r --ignore-unmatch .
-          git clean -fdx
-          rsync -a --exclude='.git' --exclude='.github/workflows/***' /tmp/source/ ./
-
-          mkdir -p .github
-          rm -rf .github/workflows
-          cp -a /tmp/preserved-workflows/workflows .github/workflows
-
-          git add -A
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'CONest_v0.0.0'
-          git push origin main
-          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
   build-and-release:
-    needs: prepare-source
     runs-on: windows-latest
     steps:
-      - name: Checkout published source
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: main
           fetch-depth: 0
-
-      - name: Verify source commit
-        shell: pwsh
-        run: |
-          $actual = git rev-parse HEAD
-          if ($actual -ne '${{ needs.prepare-source.outputs.source_sha }}') {
-            throw "main moved unexpectedly: $actual"
-          }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -175,45 +37,61 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build CONest
+      - name: Build using build.bat
         shell: pwsh
         run: |
-          (Get-Content build.bat) |
-            Where-Object { $_ -notmatch '^\s*pause\s*$' } |
-            Set-Content build-ci.bat
+          $text = Get-Content -Raw -Encoding UTF8 build.bat
+          $text = [regex]::Replace($text, '(?m)^\s*pause\s*$', '')
+          [IO.File]::WriteAllText((Join-Path $PWD 'build-ci.bat'), $text, [Text.UTF8Encoding]::new($false))
           cmd /c build-ci.bat
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Package Portable ZIP
+      - name: Verify and package build outputs
         shell: pwsh
         run: |
-          if (Test-Path 'dist-package\CONest-Portable.zip') {
-            Remove-Item 'dist-package\CONest-Portable.zip' -Force
-          }
-          Compress-Archive -Path 'dist-package\CONest-Portable\*' -DestinationPath 'dist-package\CONest-Portable.zip' -Force
-
-      - name: Verify release assets
-        shell: pwsh
-        run: |
-          $assets = @(
-            'dist-package\CONest-Setup.exe',
-            'dist-package\CONest-Portable.zip',
-            'dist-package\CONest-Extension.zip'
+          $required = @(
+            'dist-package/CONest-Setup.exe',
+            'dist-package/CONest-Extension.zip',
+            'dist-package/CONest-Portable/CONest.exe',
+            'dist-package/CONest-Portable/aria2c.exe',
+            'dist-package/CONest-Portable/ffmpeg.exe',
+            'dist-package/CONest-Portable/DanmakuFactory.exe',
+            'dist-package/CONest-Portable/conest-native-host.exe'
           )
-          foreach ($asset in $assets) {
-            if (-not (Test-Path $asset)) { throw "Missing release asset: $asset" }
+          foreach ($path in $required) {
+            if (-not (Test-Path $path) -or (Get-Item $path).Length -eq 0) {
+              throw "Missing or empty build output: $path"
+            }
           }
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          Copy-Item dist-package/CONest-Setup.exe release-assets/
+          Copy-Item dist-package/CONest-Extension.zip release-assets/
+          Compress-Archive -Path 'dist-package/CONest-Portable/*' -DestinationPath 'release-assets/CONest-Portable.zip' -Force
+          Compress-Archive -Path 'dist-package' -DestinationPath 'release-assets/CONest-dist-package.zip' -Force
+          Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content -Encoding ascii release-assets/SHA256SUMS.txt
+
+      - name: Preserve build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CONest-v53-release-assets
+          path: release-assets/*
+          if-no-files-found: error
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.0.0
-          target_commitish: ${{ needs.prepare-source.outputs.source_sha }}
-          name: CONest_v0.0.0
-          body: v0.0.0 上線
+          tag_name: v0.0.0-v53
+          target_commitish: ${{ github.sha }}
+          name: CONest v0.0.0 v53
+          body: |
+            Built directly from the v53 source using build.bat.
+            CONest-dist-package.zip includes the complete dist-package directory.
+            CONest-Setup.exe, CONest-Portable.zip and CONest-Extension.zip are also available separately.
+            SHA256SUMS.txt contains checksums for the downloads.
           draft: false
           prerelease: false
-          files: |
-            dist-package/CONest-Setup.exe
-            dist-package/CONest-Portable.zip
-            dist-package/CONest-Extension.zip
+          fail_on_unmatched_files: true
+          files: release-assets/*
