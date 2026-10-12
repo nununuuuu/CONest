@@ -1,104 +1,13 @@
 name: Publish CONest v0.0.0
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.bootstrap/**'
-      - '.github/workflows/publish-v0.0.0.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  prepare-source:
+  hold:
     runs-on: ubuntu-latest
-    outputs:
-      source_sha: ${{ steps.push.outputs.source_sha }}
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Decode preserved source overlay
-        id: overlay
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          text = (Path('.bootstrap/overlay.000').read_text(encoding='utf-8') +
-                  Path('.bootstrap/overlay.001').read_text(encoding='utf-8'))
-          chars = [c for c in text if not c.isspace()]
-          vals = []
-          for c in chars:
-              v = ord(c) - 0x4E00
-              if not 0 <= v < 32768:
-                  raise SystemExit(f'unexpected overlay character U+{ord(c):04X}')
-              vals.append(v)
-
-          def decode_msb(values):
-              out = bytearray(); acc = 0; bits = 0
-              for v in values:
-                  acc = (acc << 15) | v; bits += 15
-                  while bits >= 8:
-                      bits -= 8
-                      out.append((acc >> bits) & 0xff)
-                      acc &= (1 << bits) - 1 if bits else 0
-              return bytes(out)
-
-          def decode_lsb(values):
-              out = bytearray(); acc = 0; bits = 0
-              for v in values:
-                  acc |= v << bits; bits += 15
-                  while bits >= 8:
-                      out.append(acc & 0xff)
-                      acc >>= 8; bits -= 8
-              return bytes(out)
-
-          candidates = [('msb', decode_msb(vals)), ('lsb', decode_lsb(vals))]
-          fmt = 'unknown'; chosen = None; mode = None
-          for m, b in candidates:
-              if b.startswith(b'\xfd7zXZ\x00'): f='xz'
-              elif b.startswith(b'PK\x03\x04'): f='zip'
-              elif b.startswith(b'\x1f\x8b'): f='gzip'
-              elif b.startswith(b'diff --git') or b'diff --git' in b[:200]: f='patch'
-              elif len(b) > 265 and b[257:262] == b'ustar': f='tar'
-              else: f='unknown'
-              print(m, 'size=', len(b), 'magic=', b[:16].hex(), 'format=', f)
-              if f != 'unknown' and chosen is None:
-                  mode, chosen, fmt = m, b, f
-          if chosen is None:
-              raise SystemExit('could not identify decoded overlay')
-          Path('/tmp/overlay.bin').write_bytes(chosen)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-              fh.write(f'format={fmt}\nmode={mode}\nsize={len(chosen)}\n')
-          PY
-
-      - name: Validate overlay archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "overlay mode=${{ steps.overlay.outputs.mode }} format=${{ steps.overlay.outputs.format }} size=${{ steps.overlay.outputs.size }}"
-          case '${{ steps.overlay.outputs.format }}' in
-            xz) xz -tv /tmp/overlay.bin ;;
-            zip) unzip -t /tmp/overlay.bin ;;
-            gzip) gzip -t /tmp/overlay.bin ;;
-            patch|tar) test -s /tmp/overlay.bin ;;
-            *) exit 1 ;;
-          esac
-
-      - name: Stop after overlay validation
-        run: |
-          echo 'Preserved overlay decoded successfully; reconstruction mode identified.'
-
-  build-and-release:
-    if: false
-    needs: prepare-source
-    runs-on: windows-latest
-    steps:
-      - run: echo disabled during source recovery
+      - run: echo "Recovery payload is being staged on main."
