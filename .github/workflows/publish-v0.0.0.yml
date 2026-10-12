@@ -26,15 +26,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Use only the canonical numbered chunks. Do not glob part*, because
-          # the repository also contains part03a and including it corrupts XZ.
           cat \
             .bootstrap/v53-text.patch.xz.b64.part00 \
             .bootstrap/v53-text.patch.xz.b64.part01 \
             .bootstrap/v53-text.patch.xz.b64.part02 \
-            .bootstrap/v53-text.patch.xz.b64.part03 \
+            .bootstrap/v53-text.patch.xz.b64.part03a \
+            .bootstrap/v53-text.patch.xz.b64.part03b \
             .bootstrap/v53-text.patch.xz.b64.part04 \
-            .bootstrap/v53-text.patch.xz.b64.part05 \
+            .bootstrap/v53-text.patch.xz.b64.part05a \
+            .bootstrap/v53-text.patch.xz.b64.part05b \
             .bootstrap/v53-text.patch.xz.b64.part06 \
             | tr -d '\r\n\t ' \
             | base64 --decode > /tmp/v53-text.patch.xz
