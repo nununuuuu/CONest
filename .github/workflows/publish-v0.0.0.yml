@@ -23,6 +23,47 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Probe bootstrap overlay
+        id: overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/overlay-probe
+          cd /tmp/overlay-probe
+          npm init -y >/dev/null 2>&1
+          npm install --silent base32768
+          cd "$GITHUB_WORKSPACE"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import { decode } from '/tmp/overlay-probe/node_modules/base32768/src/index.js';
+          const text = fs.readFileSync('.bootstrap/overlay.000','utf8') + fs.readFileSync('.bootstrap/overlay.001','utf8');
+          const buf = Buffer.from(decode(text));
+          fs.writeFileSync('/tmp/overlay.bin', buf);
+          let format = 'unknown';
+          if (buf.subarray(0,6).equals(Buffer.from([0xfd,0x37,0x7a,0x58,0x5a,0x00]))) format = 'xz';
+          else if (buf.subarray(0,4).equals(Buffer.from([0x50,0x4b,0x03,0x04]))) format = 'zip';
+          else if (buf.subarray(0,2).equals(Buffer.from([0x1f,0x8b]))) format = 'gzip';
+          else if (buf.subarray(0,10).toString('utf8').startsWith('diff --git')) format = 'patch';
+          else if (buf.subarray(0,100).toString('utf8').includes('diff --git')) format = 'patch';
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `format=${format}\nsize=${buf.length}\n`);
+          JS
+
+      - name: Overlay decoded as XZ
+        if: steps.overlay.outputs.format == 'xz'
+        run: xz -tv /tmp/overlay.bin
+
+      - name: Overlay decoded as ZIP
+        if: steps.overlay.outputs.format == 'zip'
+        run: unzip -t /tmp/overlay.bin
+
+      - name: Overlay decoded as patch
+        if: steps.overlay.outputs.format == 'patch'
+        run: test -s /tmp/overlay.bin
+
+      - name: Overlay format unknown
+        if: steps.overlay.outputs.format == 'unknown'
+        run: exit 1
+
       - name: Decode build patch
         shell: bash
         run: |
@@ -30,14 +71,10 @@ jobs:
           import base64
           from pathlib import Path
           parts = [
-              '.bootstrap/patch.part00.b64',
-              '.bootstrap/patch.part01.b64',
-              '.bootstrap/patch.part02_03.b64',
-              '.bootstrap/patch.part04_05.b64',
-              '.bootstrap/patch.part06_07.b64',
-              '.bootstrap/patch.part08_09.b64',
-              '.bootstrap/patch.part10_11.b64',
-              '.bootstrap/patch.part12_13.b64',
+              '.bootstrap/patch.part00.b64', '.bootstrap/patch.part01.b64',
+              '.bootstrap/patch.part02_03.b64', '.bootstrap/patch.part04_05.b64',
+              '.bootstrap/patch.part06_07.b64', '.bootstrap/patch.part08_09.b64',
+              '.bootstrap/patch.part10_11.b64', '.bootstrap/patch.part12_13.b64',
               '.bootstrap/patch.part14.b64',
           ]
           raw = b''.join(Path(p).read_bytes() for p in parts)
@@ -138,60 +175,38 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-
       - name: Verify source commit
         shell: pwsh
         run: |
           $actual = git rev-parse HEAD
-          if ($actual -ne '${{ needs.prepare-source.outputs.source_sha }}') {
-            throw "main moved unexpectedly: $actual"
-          }
-
+          if ($actual -ne '${{ needs.prepare-source.outputs.source_sha }}') { throw "main moved unexpectedly: $actual" }
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: '10.25.0'
           run_install: false
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-
       - name: Build CONest
         shell: pwsh
         run: |
-          (Get-Content build.bat) |
-            Where-Object { $_ -notmatch '^\s*pause\s*$' } |
-            Set-Content build-ci.bat
+          (Get-Content build.bat) | Where-Object { $_ -notmatch '^\s*pause\s*$' } | Set-Content build-ci.bat
           cmd /c build-ci.bat
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Package Portable ZIP
         shell: pwsh
         run: |
-          if (Test-Path 'dist-package\CONest-Portable.zip') {
-            Remove-Item 'dist-package\CONest-Portable.zip' -Force
-          }
+          if (Test-Path 'dist-package\CONest-Portable.zip') { Remove-Item 'dist-package\CONest-Portable.zip' -Force }
           Compress-Archive -Path 'dist-package\CONest-Portable\*' -DestinationPath 'dist-package\CONest-Portable.zip' -Force
-
       - name: Verify release assets
         shell: pwsh
         run: |
-          $assets = @(
-            'dist-package\CONest-Setup.exe',
-            'dist-package\CONest-Portable.zip',
-            'dist-package\CONest-Extension.zip'
-          )
-          foreach ($asset in $assets) {
-            if (-not (Test-Path $asset)) {
-              throw "Missing release asset: $asset"
-            }
-          }
-
+          $assets = @('dist-package\CONest-Setup.exe','dist-package\CONest-Portable.zip','dist-package\CONest-Extension.zip')
+          foreach ($asset in $assets) { if (-not (Test-Path $asset)) { throw "Missing release asset: $asset" } }
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
