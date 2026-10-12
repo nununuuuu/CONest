@@ -32,34 +32,30 @@ jobs:
           cd /tmp/overlay-probe
           npm init -y >/dev/null 2>&1
           npm install --silent base32768
-          cd "$GITHUB_WORKSPACE"
-          node --input-type=module <<'JS'
+          WORKSPACE="$GITHUB_WORKSPACE" node --input-type=module <<'JS'
           import fs from 'node:fs';
-          import { decode } from '/tmp/overlay-probe/node_modules/base32768/src/index.js';
-          const text = fs.readFileSync('.bootstrap/overlay.000','utf8') + fs.readFileSync('.bootstrap/overlay.001','utf8');
+          import { decode } from 'base32768';
+          const root = process.env.WORKSPACE;
+          const text = fs.readFileSync(root + '/.bootstrap/overlay.000','utf8') + fs.readFileSync(root + '/.bootstrap/overlay.001','utf8');
           const buf = Buffer.from(decode(text));
           fs.writeFileSync('/tmp/overlay.bin', buf);
           let format = 'unknown';
           if (buf.subarray(0,6).equals(Buffer.from([0xfd,0x37,0x7a,0x58,0x5a,0x00]))) format = 'xz';
           else if (buf.subarray(0,4).equals(Buffer.from([0x50,0x4b,0x03,0x04]))) format = 'zip';
           else if (buf.subarray(0,2).equals(Buffer.from([0x1f,0x8b]))) format = 'gzip';
-          else if (buf.subarray(0,10).toString('utf8').startsWith('diff --git')) format = 'patch';
-          else if (buf.subarray(0,100).toString('utf8').includes('diff --git')) format = 'patch';
+          else if (buf.subarray(0,200).toString('utf8').includes('diff --git')) format = 'patch';
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `format=${format}\nsize=${buf.length}\n`);
           JS
 
       - name: Overlay decoded as XZ
         if: steps.overlay.outputs.format == 'xz'
         run: xz -tv /tmp/overlay.bin
-
       - name: Overlay decoded as ZIP
         if: steps.overlay.outputs.format == 'zip'
         run: unzip -t /tmp/overlay.bin
-
       - name: Overlay decoded as patch
         if: steps.overlay.outputs.format == 'patch'
         run: test -s /tmp/overlay.bin
-
       - name: Overlay format unknown
         if: steps.overlay.outputs.format == 'unknown'
         run: exit 1
@@ -82,11 +78,9 @@ jobs:
           raw += b'=' * (-len(raw) % 4)
           Path('/tmp/build.patch.xz').write_bytes(base64.b64decode(raw, validate=False))
           PY
-
       - name: Validate build patch archive
         shell: bash
         run: xz -tv /tmp/build.patch.xz
-
       - name: Decode new-files patch
         shell: bash
         run: |
@@ -99,11 +93,9 @@ jobs:
           raw += b'=' * (-len(raw) % 4)
           Path('/tmp/newfiles.patch.xz').write_bytes(base64.b64decode(raw, validate=False))
           PY
-
       - name: Validate new-files patch archive
         shell: bash
         run: xz -tv /tmp/newfiles.patch.xz
-
       - name: Decompress patches
         shell: bash
         run: |
