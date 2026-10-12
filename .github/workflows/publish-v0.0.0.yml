@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Probe bootstrap overlay
+      - name: Decode preserved source overlay
         id: overlay
         shell: bash
         run: |
@@ -31,13 +31,13 @@ jobs:
           mkdir -p /tmp/overlay-probe
           cd /tmp/overlay-probe
           npm init -y >/dev/null 2>&1
-          npm install --silent base32768
-          WORKSPACE="$GITHUB_WORKSPACE" node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          import { decode } from 'base32768';
+          npm install --silent base65536
+          WORKSPACE="$GITHUB_WORKSPACE" node <<'JS'
+          const fs = require('fs');
+          const base65536 = require('base65536');
           const root = process.env.WORKSPACE;
           const text = fs.readFileSync(root + '/.bootstrap/overlay.000','utf8') + fs.readFileSync(root + '/.bootstrap/overlay.001','utf8');
-          const buf = Buffer.from(decode(text));
+          const buf = Buffer.from(base65536.decode(text));
           fs.writeFileSync('/tmp/overlay.bin', buf);
           let format = 'unknown';
           if (buf.subarray(0,6).equals(Buffer.from([0xfd,0x37,0x7a,0x58,0x5a,0x00]))) format = 'xz';
@@ -45,20 +45,20 @@ jobs:
           else if (buf.subarray(0,2).equals(Buffer.from([0x1f,0x8b]))) format = 'gzip';
           else if (buf.subarray(0,200).toString('utf8').includes('diff --git')) format = 'patch';
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `format=${format}\nsize=${buf.length}\n`);
+          console.log(`decoded overlay: ${buf.length} bytes, format=${format}`);
           JS
 
-      - name: Overlay decoded as XZ
-        if: steps.overlay.outputs.format == 'xz'
-        run: xz -tv /tmp/overlay.bin
-      - name: Overlay decoded as ZIP
-        if: steps.overlay.outputs.format == 'zip'
-        run: unzip -t /tmp/overlay.bin
-      - name: Overlay decoded as patch
-        if: steps.overlay.outputs.format == 'patch'
-        run: test -s /tmp/overlay.bin
-      - name: Overlay format unknown
-        if: steps.overlay.outputs.format == 'unknown'
-        run: exit 1
+      - name: Validate overlay archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          case '${{ steps.overlay.outputs.format }}' in
+            xz) xz -tv /tmp/overlay.bin ;;
+            zip) unzip -t /tmp/overlay.bin ;;
+            gzip) gzip -t /tmp/overlay.bin ;;
+            patch) test -s /tmp/overlay.bin ;;
+            *) echo 'Unknown overlay format' >&2; exit 1 ;;
+          esac
 
       - name: Decode build patch
         shell: bash
@@ -147,7 +147,8 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin main
-          git checkout -B publish-main origin/main
+          git checkout main
+          git reset --hard origin/main
           git rm -r --ignore-unmatch .
           git clean -fdx
           rsync -a --exclude='.git' /tmp/source/ ./
@@ -155,7 +156,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'CONest_v0.0.0'
-          git push origin HEAD:main
+          git push origin main
           echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build-and-release:
