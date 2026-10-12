@@ -23,88 +23,58 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct patches
+      - name: Decode build patch
         shell: bash
         run: |
-          set -u
-          LOG=/tmp/reconstruct-diagnostics.md
-          : > "$LOG"
-          exec > >(tee -a "$LOG") 2>&1
-
-          echo '=== input files ==='
-          wc -c .bootstrap/patch.part*.b64 .bootstrap/newfiles.patch.xz.b64.part0*
-
           python3 - <<'PY'
           import base64
           from pathlib import Path
-
-          groups = {
-              '/tmp/build.patch.xz': [
-                  '.bootstrap/patch.part00.b64',
-                  '.bootstrap/patch.part01.b64',
-                  '.bootstrap/patch.part02_03.b64',
-                  '.bootstrap/patch.part04_05.b64',
-                  '.bootstrap/patch.part06_07.b64',
-                  '.bootstrap/patch.part08_09.b64',
-                  '.bootstrap/patch.part10_11.b64',
-                  '.bootstrap/patch.part12_13.b64',
-                  '.bootstrap/patch.part14.b64',
-              ],
-              '/tmp/newfiles.patch.xz': sorted(str(p) for p in Path('.bootstrap').glob('newfiles.patch.xz.b64.part0*')),
-          }
-
-          alphabet = set(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
-          for dst, parts in groups.items():
-              out = bytearray()
-              print(f'-- decoding {dst}')
-              for name in parts:
-                  raw = Path(name).read_bytes()
-                  clean = b''.join(raw.split())
-                  filtered = bytes(c for c in clean if c in alphabet)
-                  filtered += b'=' * (-len(filtered) % 4)
-                  print(f'{name}: raw={len(raw)} clean={len(clean)} filtered={len(filtered)}')
-                  try:
-                      decoded = base64.b64decode(filtered, validate=False)
-                  except Exception as e:
-                      print(f'DECODE ERROR {name}: {e!r}')
-                      raise
-                  out.extend(decoded)
-              Path(dst).write_bytes(out)
-              print(f'{dst}: bytes={len(out)} magic={out[:12].hex()}')
+          parts = [
+              '.bootstrap/patch.part00.b64',
+              '.bootstrap/patch.part01.b64',
+              '.bootstrap/patch.part02_03.b64',
+              '.bootstrap/patch.part04_05.b64',
+              '.bootstrap/patch.part06_07.b64',
+              '.bootstrap/patch.part08_09.b64',
+              '.bootstrap/patch.part10_11.b64',
+              '.bootstrap/patch.part12_13.b64',
+              '.bootstrap/patch.part14.b64',
+          ]
+          raw = b''.join(Path(p).read_bytes() for p in parts)
+          raw = b''.join(raw.split())
+          raw += b'=' * (-len(raw) % 4)
+          Path('/tmp/build.patch.xz').write_bytes(base64.b64decode(raw, validate=False))
           PY
-          PY_STATUS=$?
 
-          echo '=== decoded files ==='
-          ls -l /tmp/build.patch.xz /tmp/newfiles.patch.xz 2>/dev/null || true
-          file /tmp/build.patch.xz /tmp/newfiles.patch.xz 2>/dev/null || true
+      - name: Validate build patch archive
+        shell: bash
+        run: xz -tv /tmp/build.patch.xz
 
-          BUILD_XZ=99
-          NEW_XZ=99
-          if [ -f /tmp/build.patch.xz ]; then
-            xz -tv /tmp/build.patch.xz
-            BUILD_XZ=$?
-          fi
-          if [ -f /tmp/newfiles.patch.xz ]; then
-            xz -tv /tmp/newfiles.patch.xz
-            NEW_XZ=$?
-          fi
-          echo "statuses: python=$PY_STATUS build_xz=$BUILD_XZ newfiles_xz=$NEW_XZ"
+      - name: Decode new-files patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          parts = sorted(Path('.bootstrap').glob('newfiles.patch.xz.b64.part0*'))
+          raw = b''.join(p.read_bytes() for p in parts)
+          raw = b''.join(raw.split())
+          raw += b'=' * (-len(raw) % 4)
+          Path('/tmp/newfiles.patch.xz').write_bytes(base64.b64decode(raw, validate=False))
+          PY
 
-          if [ "$PY_STATUS" -eq 0 ] && [ "$BUILD_XZ" -eq 0 ] && [ "$NEW_XZ" -eq 0 ]; then
-            xz -dc /tmp/build.patch.xz > /tmp/build.patch
-            xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
-            test -s /tmp/build.patch
-            test -s /tmp/newfiles.patch
-            exit 0
-          fi
+      - name: Validate new-files patch archive
+        shell: bash
+        run: xz -tv /tmp/newfiles.patch.xz
 
-          cp "$LOG" reconstruct-diagnostics.md
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f reconstruct-diagnostics.md
-          git commit -m 'ci: record patch reconstruction diagnostics' || true
-          git push origin HEAD:main || true
-          exit 1
+      - name: Decompress patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          xz -dc /tmp/build.patch.xz > /tmp/build.patch
+          xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
+          test -s /tmp/build.patch
+          test -s /tmp/newfiles.patch
 
       - name: Reconstruct CONest v0.0.0 source
         shell: bash
@@ -129,12 +99,10 @@ jobs:
           test -f src-tauri/src/services/local_api.rs
           test -f src-tauri/src/native_messaging.rs
           test -f src/i18n/locales/zh-TW.json
-
           node -e "const p=require('./package.json'); if(p.version!=='0.0.0') process.exit(1)"
           node -e "const p=require('./src-tauri/tauri.conf.json'); if(p.productName!=='CONest'||p.version!=='0.0.0'||p.identifier!=='com.nununuuuu.conest') process.exit(1)"
           node --check extension/background.js
           node --check extension/content.js
-
           if find . -type f \( -name 'CONest-updater.key' -o -name '*.key' \) ! -name '*.key.pub' | grep -q .; then
             echo 'Private key file detected; refusing to publish.' >&2
             exit 1
