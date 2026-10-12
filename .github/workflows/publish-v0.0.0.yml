@@ -26,43 +26,85 @@ jobs:
       - name: Reconstruct patches
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
+          LOG=/tmp/reconstruct-diagnostics.txt
+          : > "$LOG"
+          exec > >(tee -a "$LOG") 2>&1
 
-          cat \
-            .bootstrap/patch.part00.b64 \
-            .bootstrap/patch.part01.b64 \
-            .bootstrap/patch.part02_03.b64 \
-            .bootstrap/patch.part04_05.b64 \
-            .bootstrap/patch.part06_07.b64 \
-            .bootstrap/patch.part08_09.b64 \
-            .bootstrap/patch.part10_11.b64 \
-            .bootstrap/patch.part12_13.b64 \
-            .bootstrap/patch.part14.b64 \
-            > /tmp/build.patch.xz.b64
-
-          cat .bootstrap/newfiles.patch.xz.b64.part0* > /tmp/newfiles.patch.xz.b64
+          echo '=== input files ==='
+          wc -c .bootstrap/patch.part*.b64 .bootstrap/newfiles.patch.xz.b64.part0*
 
           python3 - <<'PY'
           import base64
           from pathlib import Path
 
-          for src, dst in [
-              ('/tmp/build.patch.xz.b64', '/tmp/build.patch.xz'),
-              ('/tmp/newfiles.patch.xz.b64', '/tmp/newfiles.patch.xz'),
-          ]:
-              raw = Path(src).read_bytes()
-              raw = b''.join(raw.split())
-              raw += b'=' * (-len(raw) % 4)
-              Path(dst).write_bytes(base64.b64decode(raw, validate=False))
+          groups = {
+              '/tmp/build.patch.xz': [
+                  '.bootstrap/patch.part00.b64',
+                  '.bootstrap/patch.part01.b64',
+                  '.bootstrap/patch.part02_03.b64',
+                  '.bootstrap/patch.part04_05.b64',
+                  '.bootstrap/patch.part06_07.b64',
+                  '.bootstrap/patch.part08_09.b64',
+                  '.bootstrap/patch.part10_11.b64',
+                  '.bootstrap/patch.part12_13.b64',
+                  '.bootstrap/patch.part14.b64',
+              ],
+              '/tmp/newfiles.patch.xz': sorted(str(p) for p in Path('.bootstrap').glob('newfiles.patch.xz.b64.part0*')),
+          }
+
+          for dst, parts in groups.items():
+              out = bytearray()
+              print(f'-- decoding {dst}')
+              for name in parts:
+                  raw = Path(name).read_bytes()
+                  clean = b''.join(raw.split())
+                  filtered = bytes(c for c in clean if c in b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+                  filtered += b'=' * (-len(filtered) % 4)
+                  print(f'{name}: raw={len(raw)} clean={len(clean)} filtered={len(filtered)}')
+                  try:
+                      decoded = base64.b64decode(filtered, validate=False)
+                  except Exception as e:
+                      print(f'DECODE ERROR {name}: {e!r}')
+                      raise
+                  out.extend(decoded)
+              Path(dst).write_bytes(out)
+              print(f'{dst}: bytes={len(out)} magic={out[:12].hex()}')
           PY
+          PY_STATUS=$?
 
-          xz -t /tmp/build.patch.xz
-          xz -t /tmp/newfiles.patch.xz
-          xz -dc /tmp/build.patch.xz > /tmp/build.patch
-          xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
+          echo '=== decoded files ==='
+          ls -l /tmp/build.patch.xz /tmp/newfiles.patch.xz 2>/dev/null || true
+          file /tmp/build.patch.xz /tmp/newfiles.patch.xz 2>/dev/null || true
 
-          test -s /tmp/build.patch
-          test -s /tmp/newfiles.patch
+          BUILD_XZ=99
+          NEW_XZ=99
+          if [ -f /tmp/build.patch.xz ]; then
+            xz -tv /tmp/build.patch.xz
+            BUILD_XZ=$?
+          fi
+          if [ -f /tmp/newfiles.patch.xz ]; then
+            xz -tv /tmp/newfiles.patch.xz
+            NEW_XZ=$?
+          fi
+          echo "statuses: python=$PY_STATUS build_xz=$BUILD_XZ newfiles_xz=$NEW_XZ"
+
+          if [ "$PY_STATUS" -eq 0 ] && [ "$BUILD_XZ" -eq 0 ] && [ "$NEW_XZ" -eq 0 ]; then
+            xz -dc /tmp/build.patch.xz > /tmp/build.patch
+            xz -dc /tmp/newfiles.patch.xz > /tmp/newfiles.patch
+            test -s /tmp/build.patch
+            test -s /tmp/newfiles.patch
+            rm -f reconstruct-diagnostics.txt
+            exit 0
+          fi
+
+          cp "$LOG" reconstruct-diagnostics.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reconstruct-diagnostics.txt
+          git commit -m 'ci: record patch reconstruction diagnostics' || true
+          git push origin HEAD:main || true
+          exit 1
 
       - name: Reconstruct CONest v0.0.0 source
         shell: bash
