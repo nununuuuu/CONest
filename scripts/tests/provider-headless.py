@@ -80,6 +80,11 @@ pub mod provider;
     loop {if ytdlp_tasks().await.unwrap().into_iter().find(|t|t.id==queued[0].id).unwrap().state=="stopped" { break; }tokio::time::sleep(std::time::Duration::from_millis(50)).await;}
   }).await.unwrap();
   drop(blocker);
+  // Interrupted tasks may change codecs/device before retry, but running tasks may not.
+  let changed=ytdlp_edit(queued[0].id.clone(),options.clone(),settings.clone()).await.unwrap();
+  assert_eq!(changed.options.accelerator,"cpu");
+  assert!(ytdlp_edit(done.id.clone(),options.clone(),settings.clone()).await.is_err());
+
   // H.264 source -> WebM requires an MKV intermediate, then actual VP9/Opus.
   let mut webm=options.clone();webm.container="webm".into();webm.video_codec="vp9".into();webm.audio_codec="opus".into();
   let converted=ytdlp_submit(collection.entries,webm,settings).await.unwrap();

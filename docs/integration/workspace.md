@@ -26,7 +26,7 @@
 
 新增僅音訊、畫質上限、MP4/MKV/WebM 容器、H.264/H.265/VP9/AV1 視訊編碼、AAC/Opus/MP3/FLAC/WAV 音訊編碼、音訊位元率、CPU 或裝置支援的 GPU 轉碼、字幕、自動字幕、封面、中繼資料、時間裁剪與 SponsorBlock。CPU/GPU 用於 FFmpeg 後處理，網路下載由 yt-dlp 執行；保留來源編碼時不做多餘重編碼。
 
-新任務提供儲存、停止、重試續傳、日誌及開啟資料夾。影片轉碼失敗保留已下載來源檔案。停止會終止子程序樹；重啟後中斷任務顯示可重試。GPU 硬體及 FFmpeg 支援不足會明確報錯。
+新任務提供儲存、停止、重試續傳、重試前修改編碼與裝置、日誌及開啟資料夾。影片轉碼失敗保留已下載來源檔案。停止會終止子程序樹；重啟後中斷任務顯示可重試。GPU 硬體及 FFmpeg 支援不足會明確報錯。
 
 ## 打包與版本
 
@@ -38,7 +38,7 @@
 
 - `pnpm web:build`：Vue/TypeScript 檢查及前端建置。
 - `node --experimental-strip-types --test scripts/tests/provider-routing.mjs`：原生 ID、網址、分享文字及多平台分流。
-- `python scripts/tests/provider-headless.py`：使用生產插件的實際程式碼，在不依賴桌面/WebKit 主機下測試清單解析、格式驗證、編碼器選取、真實本機媒體下載、CPU 轉碼及任務持久保存。可用 CONEST_TEST_YTDLP、CONEST_TEST_FFMPEG、CONEST_TEST_CARGO 指定工具。
+- `python scripts/tests/provider-headless.py`：使用生產插件的實際程式碼，在不依賴桌面/WebKit 主機下測試清單解析、格式驗證、編碼器選取、真實本機媒體下載、CPU 轉碼（H.264/AAC 與 VP9/Opus）、共用下載名額、等待中停止、子程序終止、重試設定及任務持久保存。可用 CONEST_TEST_YTDLP、CONEST_TEST_FFMPEG、CONEST_TEST_CARGO 指定工具。
 - Windows Actions 使用 build.bat 編譯實際 Tauri 主機，再用打包引擎執行下載測試及驗證所有輸出檔案。
 
 本機測試使用生成的媒體，無需網站帳號。實際網站可用性仍取決於 yt-dlp 解析器、Cookie、平台限制與硬體；未以這些測試聲稱每個網站或硬體皆已實測。

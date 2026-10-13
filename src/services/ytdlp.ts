@@ -133,6 +133,13 @@ export const useYtdlpStore = defineStore('ytdlp', () => {
       if (!tasks.value[task.id]) tasks.value[task.id] = task;
     return list;
   }
+  async function edit(id: string, options: DownloadOptions) {
+    return invoke<ProviderTask>('ytdlp_edit', {
+      id,
+      options,
+      settings: { ...settings.value },
+    });
+  }
   async function control(id: string, action: string) {
     await invoke('ytdlp_control', { id, action });
     if (action === 'remove') delete tasks.value[id];
@@ -145,6 +152,7 @@ export const useYtdlpStore = defineStore('ytdlp', () => {
     analyze,
     submit,
     control,
+    edit,
     loadError,
   };
 });

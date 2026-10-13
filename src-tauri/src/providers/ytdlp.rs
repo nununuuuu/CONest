@@ -142,8 +142,15 @@ async fn save() -> Result<()> {
 }
 
 async fn update(id: &str, change: impl FnOnce(&mut ProviderTask)) {
+    update_state(id, change, false).await;
+}
+
+async fn update_state(id: &str, change: impl FnOnce(&mut ProviderTask), finished: bool) {
     let snapshot = {
         let mut state = TASKS.lock().await;
+        if finished {
+            state.running.remove(id);
+        }
         state.tasks.get_mut(id).map(|task| {
             change(task);
             task.clone()
@@ -157,6 +164,14 @@ async fn update(id: &str, change: impl FnOnce(&mut ProviderTask)) {
 fn executable(settings: &EngineSettings) -> PathBuf {
     if !settings.executable.is_empty() {
         return PathBuf::from(&settings.executable);
+    }
+    let cached = WORKING_PATH.join("Providers/bin").join(if cfg!(windows) {
+        "yt-dlp.exe"
+    } else {
+        "yt-dlp"
+    });
+    if cached.is_file() {
+        return cached;
     }
     let parent = std::env::current_exe()
         .ok()
@@ -800,34 +815,42 @@ async fn execute(id: String, cancel: CancellationToken) {
     }.await;
     match result {
         Ok(output) => {
-            update(&id, |t| {
-                t.state = "completed".into();
-                t.phase = "已完成".into();
-                t.progress = 100.0;
-                t.output = output;
-                t.speed = None;
-                t.eta = None;
-            })
+            update_state(
+                &id,
+                |t| {
+                    t.state = "completed".into();
+                    t.phase = "已完成".into();
+                    t.progress = 100.0;
+                    t.output = output;
+                    t.speed = None;
+                    t.eta = None;
+                },
+                true,
+            )
             .await
         }
         Err(error) => {
-            update(&id, |t| {
-                t.state = if cancel.is_cancelled() {
-                    "stopped"
-                } else {
-                    "failed"
-                }
-                .into();
-                t.phase = if cancel.is_cancelled() {
-                    "已停止，可重試續傳"
-                } else {
-                    "失敗"
-                }
-                .into();
-                t.error = error.to_string();
-                t.speed = None;
-                t.eta = None;
-            })
+            update_state(
+                &id,
+                |t| {
+                    t.state = if cancel.is_cancelled() {
+                        "stopped"
+                    } else {
+                        "failed"
+                    }
+                    .into();
+                    t.phase = if cancel.is_cancelled() {
+                        "已停止，可重試續傳"
+                    } else {
+                        "失敗"
+                    }
+                    .into();
+                    t.error = error.to_string();
+                    t.speed = None;
+                    t.eta = None;
+                },
+                true,
+            )
             .await
         }
     }
@@ -950,6 +973,33 @@ pub async fn ytdlp_control(id: String, action: String) -> TauriResult<()> {
 
 #[tauri::command(async)]
 #[specta::specta]
+pub async fn ytdlp_edit(
+    id: String,
+    options: DownloadOptions,
+    settings: EngineSettings,
+) -> TauriResult<ProviderTask> {
+    load().await?;
+    validate_options(&options)?;
+    let task = {
+        let mut state = TASKS.lock().await;
+        if state.running.contains_key(&id) {
+            return Err(anyhow!("請先停止任務再修改設定").into());
+        }
+        let task = state.tasks.get_mut(&id).context("找不到任務")?;
+        if task.state == "completed" {
+            return Err(anyhow!("已完成任務的設定不可修改").into());
+        }
+        task.options = options;
+        task.engine = settings;
+        task.clone()
+    };
+    save().await?;
+    update(&id, |_| {}).await;
+    Ok(task)
+}
+
+#[tauri::command(async)]
+#[specta::specta]
 pub async fn ytdlp_tasks() -> TauriResult<Vec<ProviderTask>> {
     load().await?;
     Ok(TASKS.lock().await.tasks.values().cloned().collect())
@@ -995,7 +1045,20 @@ pub async fn ytdlp_update(settings: EngineSettings) -> TauriResult<String> {
     let _guard = ENGINE_LOCK
         .try_write()
         .map_err(|_| anyhow!("引擎正在解析或下載，請完成或停止後再更新"))?;
-    let output = command(executable(&settings))
+    let mut path = executable(&settings);
+    if settings.executable.is_empty() && path.is_file() {
+        let cached = WORKING_PATH.join("Providers/bin").join(if cfg!(windows) {
+            "yt-dlp.exe"
+        } else {
+            "yt-dlp"
+        });
+        if path != cached {
+            tokio::fs::create_dir_all(cached.parent().context("Missing engine directory")?).await?;
+            tokio::fs::copy(&path, &cached).await?;
+            path = cached;
+        }
+    }
+    let output = command(path)
         .args(["--update-to", "stable"])
         .output()
         .await?;
@@ -1033,6 +1096,42 @@ mod tests {
             section_end: None,
         }
     }
+    #[tokio::test]
+    async fn cancellation_terminates_a_running_subprocess() {
+        let Ok(ffmpeg) = std::env::var("CONEST_TEST_FFMPEG") else {
+            return;
+        };
+        let mut cmd = command(ffmpeg);
+        cmd.args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-re",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=size=64x64:rate=1",
+            "-t",
+            "30",
+            "-f",
+            "null",
+            "-",
+        ]);
+        let cancel = CancellationToken::new();
+        let stop = cancel.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            stop.cancel();
+        });
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            run_process("cancellation-test", cmd, &cancel, false),
+        )
+        .await
+        .expect("Cancelled child must terminate promptly");
+        assert!(result.unwrap_err().to_string().contains("已停止"));
+    }
+
     #[test]
     fn unavailable_playlist_entries_keep_positions() {
         let v = serde_json::json!({"title":"list","entries":[{"id":"a","url":"https://example.com/a","title":"A"},null,{"id":"b","url":"https://example.com/b","title":"B"}]});

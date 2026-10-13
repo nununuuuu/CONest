@@ -30,9 +30,7 @@
           <td>
             <div class="task-title text">{{ row.title }}</div>
             <div class="desc">
-              {{
-                row.provider === 'bilibili' ? 'Bilibili 原生' : row.urlHost
-              }}
+              {{ row.provider === 'bilibili' ? 'Bilibili 原生' : row.urlHost }}
               · {{ row.id }}
             </div>
           </td>
@@ -118,6 +116,7 @@
             yt.tasks[detailTask.id].options.output_dir
           }}
         </p>
+        <ProviderTaskEditor :task="yt.tasks[detailTask.id]" />
         <pre class="text">{{ yt.tasks[detailTask.id].log.join('\n') }}</pre>
         <button
           v-if="
@@ -137,6 +136,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import ProviderTaskEditor from '@/components/ProviderTaskEditor.vue';
 import { useQueueStore } from '@/store';
 import { useYtdlpStore, message } from '@/services/ytdlp';
 import { commands, type CtrlEvent } from '@/services/backend';

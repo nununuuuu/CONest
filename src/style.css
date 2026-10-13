@@ -287,3 +287,8 @@ html.light { --primary-color: #177c63; --primary-text: #fff; --desc-color: #596b
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
 @media(max-width:1000px) { .workspace-header { gap: 18px; padding: 0 20px; } .workspace-columns { grid-template-columns: minmax(0,1fr) 250px; gap: 18px; } .workspace-inspector { width: 250px; padding-left: 16px; } .workspace-import { flex-wrap: wrap; } .workspace-import input { min-width: 180px; } }
 @media(max-width:700px) { .workspace-header { gap: 12px; flex-wrap: wrap; } .workspace-header nav { gap: 15px; min-height: 48px; } #main > .page { padding: 16px; } .workspace-columns { display: flex; flex-direction: column; overflow: auto; } .workspace-inspector { width: 100%; border-left: 0; padding: 16px 0; overflow: visible; } .workspace-content { overflow: visible; } .workspace-import input { font-size: 16px; } }
+
+.provider-retry-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap: 15px; padding: 14px 0; }
+.provider-retry-options label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--desc-color); }
+.provider-retry-options select { color: var(--content-color); background: var(--workspace-panel); padding: 8px; border-radius: 5px; }
+.provider-retry-options .workspace-list-tools, .provider-retry-options p { grid-column: 1 / -1; }

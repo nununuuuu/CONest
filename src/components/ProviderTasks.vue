@@ -78,7 +78,8 @@
       <details class="workspace-details">
         <summary>任務詳情 / 日誌</summary>
         <p class="desc text">{{ task.output || task.options.output_dir }}</p>
-        <p class="desc">{{ task.id }} · 引擎路徑與輸出設定在建立任務時固定</p>
+        <p class="desc">{{ task.id }}</p>
+        <ProviderTaskEditor :task="task" />
         <pre class="text">{{ task.log.join('\n') || '尚無日誌' }}</pre>
       </details>
     </article>
@@ -86,6 +87,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import ProviderTaskEditor from '@/components/ProviderTaskEditor.vue';
 import { useYtdlpStore, message } from '@/services/ytdlp';
 const yt = useYtdlpStore();
 const filter = ref('all');

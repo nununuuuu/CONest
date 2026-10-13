@@ -59,6 +59,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             providers::ytdlp::ytdlp_submit,
             providers::ytdlp::ytdlp_tasks,
             providers::ytdlp::ytdlp_control,
+            providers::ytdlp::ytdlp_edit,
             providers::ytdlp::ytdlp_settings,
             providers::ytdlp::ytdlp_engine_info,
             providers::ytdlp::ytdlp_update,
