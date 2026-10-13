@@ -30,7 +30,7 @@
 
 ## 打包與版本
 
-`build.bat` 在編譯前下載官方 yt-dlp 與 Deno，驗證 SHA-256 並測試執行檔版本。它們同時包含於安裝版資源與可攜資料夾，二進位檔案不提交進原始碼。
+`build.bat` 在編譯前下載官方 yt-dlp、Deno 與 FFmpeg 官方下載頁列出的 BtbN 完整 GPL 建置，驗證 SHA-256 並測試執行檔版本。yt-dlp 使用完整版 FFmpeg/FFprobe，保存在 providers 子目錄，原有 Bilibili 精簡版 FFmpeg 保留不变。它們同時包含於安裝版資源與可攜資料夾，二進位檔案不提交進原始碼。
 
 版本保持 `v0.0.0`。`Validate integrated workspace` 在 main 原始碼更新時建置 Windows 安裝版、可攜版與擴充套件，提供 Actions artifacts，不覆寫已發布的 Release。正式版本仍由既有發版流程根據 package.json 的 X.Y.Z 產生 vX.Y.Z。
 

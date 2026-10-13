@@ -6,6 +6,7 @@ import { ref } from 'vue';
 export interface EngineSettings {
   executable: string;
   deno: string;
+  ffmpeg: string;
   cookie_file: string;
   cookie_browser: string;
 }
@@ -67,6 +68,7 @@ export const useYtdlpStore = defineStore('ytdlp', () => {
   const settings = ref<EngineSettings>({
     executable: '',
     deno: '',
+    ffmpeg: '',
     cookie_file: '',
     cookie_browser: '',
   });

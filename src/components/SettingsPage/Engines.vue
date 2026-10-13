@@ -26,6 +26,16 @@
       </div></label
     >
     <label
+      >轉碼 FFmpeg（留空使用隨附完整版）
+      <div>
+        <input v-model="yt.settings.ffmpeg" type="text" /><button
+          @click="pick('ffmpeg')"
+        >
+          選擇
+        </button>
+      </div>
+    </label>
+    <label
       >Cookie 檔案（Netscape 格式）
       <div>
         <input v-model="yt.settings.cookie_file" type="text" /><button

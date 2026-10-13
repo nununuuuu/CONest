@@ -21,6 +21,7 @@ use tokio_util::sync::CancellationToken;
 pub struct EngineSettings {
     pub executable: String,
     pub deno: String,
+    pub ffmpeg: String,
     pub cookie_file: String,
     pub cookie_browser: String,
 }
@@ -195,6 +196,33 @@ fn executable(settings: &EngineSettings) -> PathBuf {
     PathBuf::from(name)
 }
 
+fn provider_ffmpeg(settings: &EngineSettings) -> PathBuf {
+    if !settings.ffmpeg.is_empty() {
+        return PathBuf::from(&settings.ffmpeg);
+    }
+    let name = if cfg!(windows) {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    };
+    if let Some(parent) = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(PathBuf::from))
+    {
+        let bundled = parent.join("providers").join(name);
+        if bundled.is_file() {
+            return bundled;
+        }
+    }
+    if let Ok(dir) = get_app_handle().path().resource_dir() {
+        let bundled = dir.join("providers").join(name);
+        if bundled.is_file() {
+            return bundled;
+        }
+    }
+    config::read().sidecar(Sidecar::FFmpeg)
+}
+
 fn command(path: impl AsRef<std::ffi::OsStr>) -> Command {
     let mut cmd = Command::new(path);
     #[cfg(windows)]
@@ -282,7 +310,7 @@ fn common_args(settings: &EngineSettings) -> Result<Vec<String>> {
     }
     args.extend([
         "--ffmpeg-location".into(),
-        cfg.sidecar(Sidecar::FFmpeg).to_string_lossy().to_string(),
+        provider_ffmpeg(settings).to_string_lossy().to_string(),
     ]);
     Ok(args)
 }
@@ -698,7 +726,7 @@ async fn transcode(task: &ProviderTask, input: &str, cancel: &CancellationToken)
     if o.mode != "video" || (o.video_codec == "original" && o.audio_codec == "original") {
         return Ok(input.into());
     }
-    let ffmpeg = config::read().sidecar(Sidecar::FFmpeg);
+    let ffmpeg = provider_ffmpeg(&task.engine);
     let video = if o.video_codec == "original" {
         "copy"
     } else {

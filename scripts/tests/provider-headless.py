@@ -54,7 +54,7 @@ pub mod provider;
  use super::provider::*;
  #[tokio::test] async fn real_download_cpu_transcode_and_saved_history() {
   let url=std::env::var("CONEST_FIXTURE_URL").unwrap();
-  let settings=EngineSettings{executable:std::env::var("CONEST_TEST_YTDLP").unwrap(),..Default::default()};
+  let settings=EngineSettings{executable:std::env::var("CONEST_TEST_YTDLP").unwrap(),ffmpeg:std::env::var("CONEST_TEST_FFMPEG").unwrap(),..Default::default()};
   let collection=ytdlp_analyze(url,false,settings.clone()).await.unwrap();
   assert_eq!(collection.entries.len(),1);assert!(collection.entries[0].available);
   let options=DownloadOptions{mode:"video".into(),height:0,container:"mkv".into(),video_codec:"h264".into(),audio_codec:"aac".into(),bitrate:128,accelerator:"cpu".into(),output_dir:std::env::var("CONEST_TEST_OUTPUT").unwrap(),subtitles:String::new(),auto_subtitles:false,embed_subtitles:false,thumbnail:false,metadata:false,sponsorblock:false,section_start:None,section_end:None};

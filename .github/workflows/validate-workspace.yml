@@ -51,13 +51,13 @@ jobs:
         shell: pwsh
         run: |
           $env:CONEST_TEST_YTDLP = (Resolve-Path 'dist-package/CONest-Portable/yt-dlp.exe').Path
-          $env:CONEST_TEST_FFMPEG = (Resolve-Path 'dist-package/CONest-Portable/ffmpeg.exe').Path
+          $env:CONEST_TEST_FFMPEG = (Resolve-Path 'dist-package/CONest-Portable/providers/ffmpeg.exe').Path
           python scripts/tests/provider-headless.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify output and package portable app
         shell: pwsh
         run: |
-          foreach ($file in @('CONest-Setup.exe','CONest-Extension.zip','CONest-Portable/CONest.exe','CONest-Portable/aria2c.exe','CONest-Portable/ffmpeg.exe','CONest-Portable/DanmakuFactory.exe','CONest-Portable/conest-native-host.exe','CONest-Portable/yt-dlp.exe','CONest-Portable/deno.exe','CONest-Portable/provider-versions.json')) {
+          foreach ($file in @('CONest-Setup.exe','CONest-Extension.zip','CONest-Portable/CONest.exe','CONest-Portable/aria2c.exe','CONest-Portable/ffmpeg.exe','CONest-Portable/DanmakuFactory.exe','CONest-Portable/conest-native-host.exe','CONest-Portable/yt-dlp.exe','CONest-Portable/deno.exe','CONest-Portable/providers/ffmpeg.exe','CONest-Portable/providers/ffprobe.exe','CONest-Portable/provider-versions.json')) {
             $path = Join-Path 'dist-package' $file
             if (-not (Test-Path $path) -or (Get-Item $path).Length -eq 0) { throw "Missing build output: $path" }
           }

@@ -95,6 +95,13 @@ copy /y "src-tauri\resources\providers\yt-dlp.exe" "%PORTABLE%\yt-dlp.exe" >nul
 if errorlevel 1 goto :failed
 copy /y "src-tauri\resources\providers\deno.exe" "%PORTABLE%\deno.exe" >nul
 if errorlevel 1 goto :failed
+mkdir "%PORTABLE%\providers"
+copy /y "src-tauri\resources\providers\ffmpeg.exe" "%PORTABLE%\providers\ffmpeg.exe" >nul
+if errorlevel 1 goto :failed
+copy /y "src-tauri\resources\providers\ffprobe.exe" "%PORTABLE%\providers\ffprobe.exe" >nul
+if errorlevel 1 goto :failed
+xcopy /e /i /y "src-tauri\resources\providers\licenses" "%PORTABLE%\providers\licenses" >nul
+if errorlevel 1 goto :failed
 copy /y "src-tauri\resources\providers\versions.json" "%PORTABLE%\provider-versions.json" >nul
 
 echo Registering Native Messaging for this local test build...
@@ -157,6 +164,9 @@ echo - conest-native-host.exe
 echo - yt-dlp.exe
 echo - deno.exe
 echo - provider-versions.json
+echo - providers\ffmpeg.exe
+echo - providers\ffprobe.exe
+echo - providers\licenses
 echo.
 echo Launch CONest.exe once after moving this portable folder so Native Messaging can refresh its current path.
 echo.

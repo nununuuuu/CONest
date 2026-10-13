@@ -66,14 +66,25 @@ async function download(repo, assetName, output) {
     sha256: digest,
   };
 }
-const manifest = [];
+const versions = join(dest, 'versions.json');
+const manifest = existsSync(versions)
+  ? JSON.parse(readFileSync(versions, 'utf8'))
+  : [];
+function remember(value) {
+  const index = manifest.findIndex(
+    (item) => item.repository === value.repository,
+  );
+  if (index >= 0) manifest[index] = value;
+  else manifest.push(value);
+}
+
 const yt = join(dest, 'yt-dlp.exe');
 if (force || !existsSync(yt))
-  manifest.push(await download('yt-dlp/yt-dlp', 'yt-dlp.exe', yt));
+  remember(await download('yt-dlp/yt-dlp', 'yt-dlp.exe', yt));
 const deno = join(dest, 'deno.exe');
 if (force || !existsSync(deno)) {
   const zip = join(dest, 'deno.zip');
-  manifest.push(
+  remember(
     await download('denoland/deno', 'deno-x86_64-pc-windows-msvc.zip', zip),
   );
   const quote = (value) => `'${value.replaceAll("'", "''")}'`;
@@ -89,10 +100,84 @@ if (force || !existsSync(deno)) {
   );
   rmSync(zip, { force: true });
 }
-for (const binary of [yt, deno]) {
+const ffmpeg = join(dest, 'ffmpeg.exe');
+const ffprobe = join(dest, 'ffprobe.exe');
+if (force || !existsSync(ffmpeg) || !existsSync(ffprobe)) {
+  const zip = join(dest, 'ffmpeg.zip');
+  remember(
+    await download(
+      'BtbN/FFmpeg-Builds',
+      'ffmpeg-master-latest-win64-gpl.zip',
+      zip,
+    ),
+  );
+  const unpacked = join(dest, 'ffmpeg-unpacked');
+  const quote = (value) => `'${value.replaceAll("'", "''")}'`;
+  const ps =
+    `$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath ${quote(zip)} -DestinationPath ${quote(unpacked)} -Force; ` +
+    `$binary=Get-ChildItem -LiteralPath ${quote(unpacked)} -Recurse -File -Filter ffmpeg.exe | Select-Object -First 1; if(-not $binary){throw 'Full FFmpeg not found'}; ` +
+    `Copy-Item $binary.FullName ${quote(ffmpeg)} -Force; Copy-Item (Join-Path $binary.DirectoryName 'ffprobe.exe') ${quote(ffprobe)} -Force; ` +
+    `$licenses=${quote(join(dest, 'licenses'))}; New-Item -ItemType Directory -Force $licenses | Out-Null; ` +
+    `$items=@(Get-ChildItem -LiteralPath ${quote(unpacked)} -Recurse -File | Where-Object { $_.Name -match '^(LICENSE|COPYING)' }); if(-not $items.Count){throw 'FFmpeg license files missing'}; ` +
+    `foreach($item in $items){$relative=$item.FullName.Substring(${quote(unpacked)}.Length+1); $target=Join-Path $licenses $relative; New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null; Copy-Item $item.FullName $target -Force}`;
+  execFileSync(
+    'powershell',
+    ['-NoProfile', '-NonInteractive', '-Command', ps],
+    { stdio: 'inherit' },
+  );
+  rmSync(zip, { force: true });
+  rmSync(unpacked, { recursive: true, force: true });
+}
+// A remux-only FFmpeg cannot implement the new output codec controls.
+const encoders = execFileSync(ffmpeg, ['-hide_banner', '-encoders'], {
+  encoding: 'utf8',
+});
+for (const encoder of [
+  'libx264',
+  'libx265',
+  'libvpx-vp9',
+  'libaom-av1',
+  'libmp3lame',
+  'libopus',
+  'aac',
+  'flac',
+  'pcm_s16le',
+]) {
+  if (!encoders.includes(encoder))
+    throw new Error(`Full FFmpeg missing required encoder: ${encoder}`);
+}
+execFileSync(
+  ffmpeg,
+  [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-f',
+    'lavfi',
+    '-i',
+    'color=size=64x64:rate=1',
+    '-frames:v',
+    '1',
+    '-c:v',
+    'libx264',
+    '-f',
+    'null',
+    '-',
+  ],
+  { stdio: 'inherit' },
+);
+writeFileSync(
+  join(dest, 'licenses', 'SOURCES.md'),
+  'Full FFmpeg build: https://github.com/BtbN/FFmpeg-Builds\nFFmpeg source: https://github.com/FFmpeg/FFmpeg\nBuild versions and archive SHA-256: ../../provider-versions.json in the portable package.\n',
+);
+for (const binary of [yt, deno, ffmpeg, ffprobe]) {
   if (readFileSync(binary).subarray(0, 2).toString() !== 'MZ')
     throw new Error(`Not a Windows executable: ${binary}`);
-  execFileSync(binary, ['--version'], { stdio: 'inherit' });
+  execFileSync(
+    binary,
+    [binary === ffmpeg || binary === ffprobe ? '-version' : '--version'],
+    { stdio: 'inherit' },
+  );
 }
 if (manifest.length)
   writeFileSync(join(dest, 'versions.json'), JSON.stringify(manifest, null, 2));
