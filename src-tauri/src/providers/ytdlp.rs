@@ -793,6 +793,14 @@ async fn transcode(task: &ProviderTask, input: &str, cancel: &CancellationToken)
     Ok(target.to_string_lossy().into())
 }
 
+fn download_rate_limit(value: &serde_json::Number) -> Option<String> {
+    // The existing shared setting uses KiB/s, matching aria2's K suffix.
+    value
+        .as_f64()
+        .filter(|rate| *rate > 0.0)
+        .map(|_| format!("{value}K"))
+}
+
 async fn execute(id: String, cancel: CancellationToken) {
     let result: Result<String> = async {
         let sem = crate::services::queue::runtime::RUNTIME.semaphore.read().await.clone();
@@ -805,8 +813,7 @@ async fn execute(id: String, cancel: CancellationToken) {
         let engine_guard = ENGINE_LOCK.read().await;
         let mut args = common_args(&task.engine)?;
         args.extend(download_args(&task)?);
-        let speed_limit = config::read().speed_limit.as_u64().unwrap_or(0);
-        if speed_limit > 0 { args.extend(["--limit-rate".into(), speed_limit.to_string()]); }
+        if let Some(limit) = download_rate_limit(&config::read().speed_limit) { args.extend(["--limit-rate".into(), limit]); }
         args.extend(["--".into(), task.entry.url.clone()]);
         let mut cmd = command(executable(&task.engine));
         cmd.args(args);
@@ -1098,6 +1105,16 @@ mod tests {
             section_end: None,
         }
     }
+    #[test]
+    fn shared_speed_limit_retains_kibibytes_per_second() {
+        assert_eq!(download_rate_limit(&0.into()), None);
+        assert_eq!(download_rate_limit(&128.into()), Some("128K".into()));
+        assert_eq!(
+            download_rate_limit(&serde_json::Number::from_f64(0.5).unwrap()),
+            Some("0.5K".into())
+        );
+    }
+
     #[tokio::test]
     async fn cancellation_terminates_a_running_subprocess() {
         let Ok(ffmpeg) = std::env::var("CONEST_TEST_FFMPEG") else {

@@ -87,12 +87,20 @@ pub mod provider;
 
   // H.264 source -> WebM requires an MKV intermediate, then actual VP9/Opus.
   let mut webm=options.clone();webm.container="webm".into();webm.video_codec="vp9".into();webm.audio_codec="opus".into();
-  let converted=ytdlp_submit(collection.entries,webm,settings).await.unwrap();
+  let converted=ytdlp_submit(collection.entries.clone(),webm,settings.clone()).await.unwrap();
   ytdlp_control(converted[0].id.clone(),"start".into()).await.unwrap();
   let converted=tokio::time::timeout(std::time::Duration::from_secs(60),async {
     loop {let t=ytdlp_tasks().await.unwrap().into_iter().find(|t|t.id==converted[0].id).unwrap();if ["completed","failed"].contains(&t.state.as_str()) {break t;}tokio::time::sleep(std::time::Duration::from_millis(100)).await;}
   }).await.unwrap();
   assert_eq!(converted.state,"completed","{}\n{:?}",converted.error,converted.log);assert!(converted.output.ends_with("converted.webm"));
+  let mut audio=options.clone();audio.mode="audio".into();audio.audio_codec="mp3".into();
+  let audio=ytdlp_submit(collection.entries,audio,settings).await.unwrap();
+  ytdlp_control(audio[0].id.clone(),"start".into()).await.unwrap();
+  let audio=tokio::time::timeout(std::time::Duration::from_secs(60),async {
+    loop {let t=ytdlp_tasks().await.unwrap().into_iter().find(|t|t.id==audio[0].id).unwrap();if ["completed","failed"].contains(&t.state.as_str()) {break t;}tokio::time::sleep(std::time::Duration::from_millis(100)).await;}
+  }).await.unwrap();
+  assert_eq!(audio.state,"completed","{}\n{:?}",audio.error,audio.log);assert!(audio.output.ends_with(".mp3"));
+
 
  }
 }
