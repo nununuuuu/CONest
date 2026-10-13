@@ -1,14 +1,19 @@
 <template>
-  <div class="w-full h-full flex flex-col justify-center items-center">
-    <div
-      class="flex w-157 rounded-full mb-auto p-2 gap-2 bg-(--block-color) border border-(--split-color)"
-    >
+  <div class="workspace-page">
+    <div class="workspace-heading">
+      <div>
+        <h1>匯入與選取</h1>
+        <p class="desc">匯入連結、選取項目，再交給下載佇列。</p>
+      </div>
+      <button @click="batchVisible = !batchVisible">批次貼上</button>
+    </div>
+    <div class="workspace-import">
       <input
         v-model="v.searchInput"
         class="w-full rounded-2xl"
         type="text"
         spellcheck="false"
-        :placeholder="$t('search.input', [$t('bilibili')])"
+        placeholder="貼上網址或 Bilibili 識別碼"
         @keydown.enter="search()"
       />
       <Dropdown
@@ -21,76 +26,108 @@
           })),
         ]"
       />
-      <button
-        :class="[$fa.weight, 'fa-search rounded-full']"
-        @click="search()"
-      ></button>
+      <button class="workspace-primary" @click="search()">解析連結</button>
     </div>
-    <Transition>
-      <Empty
-        v-if="!v.listActive && !v.searching"
-        class="absolute"
-        :text="$t('search.suggest')"
-      />
-    </Transition>
-    <Transition>
-      <img
-        v-if="v.searching"
-        src="@/assets/img/searching.png"
-        class="absolute"
-      />
-    </Transition>
-    <Transition>
-      <Empty
-        v-if="!v.searching && v.listActive && !v.mediaInfo.list?.length"
-        class="absolute"
-        :text="$t('empty')"
-      />
-    </Transition>
-    <Transition>
-      <div v-if="v.listActive" class="flex flex-col flex-1 mt-3 w-full min-h-0">
-        <MediaInfo :info="v.mediaInfo" />
-        <div class="flex mt-3 gap-3 flex-1 min-h-0">
-          <Transition name="slide">
-            <MediaList
-              v-if="!v.searching && v.mediaInfo.list.length"
-              ref="mediaList"
-              v-model="v.checkboxs"
-              :list="v.mediaInfo.list"
-              :edge="v.mediaInfo.edge"
-              :update-edge="updateEdge"
-            />
-          </Transition>
-          <div class="flex flex-col gap-3 ml-auto min-w-32 max-w-48 pb-6 h-6">
-            <button
-              v-for="(i, k) in buttons"
-              :key="k"
-              class="shrink-0"
-              @click="i.action"
-            >
-              <i :class="[$fa.weight, i.icon]"></i>
-              <span>{{ $t(i.text) }}</span>
-            </button>
-            <template v-if="v.mediaInfo.pn">
-              <span>{{ $t('page') }}</span>
-              <input v-model="v.pageIndex" type="number" @input="handlePage" />
-            </template>
-            <div class="tab overflow-auto">
+    <div v-if="batchVisible" class="workspace-batch">
+      <textarea
+        v-model="batchInput"
+        placeholder="每行一個網址；Bilibili 識別碼仍可使用"
+        aria-label="批次網址"
+      ></textarea
+      ><button :disabled="batchBusy" @click="parseBatch">
+        {{ batchBusy ? '處理中…' : '解析下一筆' }}</button
+      ><button @click="searchYouTube">YouTube 搜尋</button
+      ><span class="desc">{{ batchRemaining }} 筆待解析</span>
+    </div>
+    <YtdlpWorkbench
+      v-if="provider === 'ytdlp'"
+      :input="providerInput"
+      :generation="providerGeneration"
+    />
+    <template v-else>
+      <Transition>
+        <Empty
+          v-if="!v.listActive && !v.searching"
+          class="absolute"
+          :text="$t('search.suggest')"
+        />
+      </Transition>
+      <Transition>
+        <img
+          v-if="v.searching"
+          src="@/assets/img/searching.png"
+          class="absolute"
+        />
+      </Transition>
+      <Transition>
+        <Empty
+          v-if="!v.searching && v.listActive && !v.mediaInfo.list?.length"
+          class="absolute"
+          :text="$t('empty')"
+        />
+      </Transition>
+      <Transition>
+        <div
+          v-if="v.listActive"
+          class="flex flex-col flex-1 mt-3 w-full min-h-0"
+        >
+          <MediaInfo :info="v.mediaInfo" />
+          <div class="flex mt-3 gap-3 flex-1 min-h-0">
+            <Transition name="slide">
+              <MediaList
+                v-if="!v.searching && v.mediaInfo.list.length"
+                ref="mediaList"
+                v-model="v.checkboxs"
+                :list="v.mediaInfo.list"
+                :edge="v.mediaInfo.edge"
+                :update-edge="updateEdge"
+              />
+            </Transition>
+            <div class="workspace-inspector bili-inspector">
+              <h3>輸出設定</h3>
+              <p class="desc">
+                所有原有畫質、音軌、編碼、彈幕、字幕、封面與附加內容，均保留在完整設定中。
+              </p>
               <button
-                v-for="(t, k) in v.mediaInfo.sections?.tabs"
+                v-for="(i, k) in buttons"
                 :key="k"
-                class="w-full!"
-                :class="{ active: v.tab === t.id }"
-                @click="updateTab(t.id)"
+                class="shrink-0"
+                @click="i.action"
               >
-                <span class="truncate">{{ t.name }}</span>
-                <label class="primary-color"></label>
+                <i :class="[$fa.weight, i.icon]"></i>
+                <span>{{ $t(i.text) }}</span>
               </button>
+              <template v-if="v.mediaInfo.pn">
+                <span>{{ $t('page') }}</span>
+                <input
+                  v-model="v.pageIndex"
+                  type="number"
+                  @input="handlePage"
+                />
+              </template>
+              <div class="tab overflow-auto">
+                <button
+                  v-for="(t, k) in v.mediaInfo.sections?.tabs"
+                  :key="k"
+                  class="w-full!"
+                  :class="{ active: v.tab === t.id }"
+                  @click="updateTab(t.id)"
+                >
+                  <span class="truncate">{{ t.name }}</span>
+                  <label class="primary-color"></label>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </template>
+    <div class="workspace-dock">
+      <span class="desc"
+        >{{ activeTaskCount }} 項進行中 · 原生 Bilibili
+        與多平台任務共用下載位置</span
+      ><button @click="router.push('/down-page')">查看任務 →</button>
+    </div>
   </div>
 </template>
 
@@ -98,7 +135,12 @@
 import { MediaInfo, MediaList } from '@/components/SearchPage';
 import { Dropdown, Empty } from '@/components';
 
-import { nextTick, onActivated, reactive, ref, watch } from 'vue';
+import { nextTick, onActivated, reactive, ref, watch, computed } from 'vue';
+import YtdlpWorkbench from '@/components/YtdlpWorkbench.vue';
+import { chooseProvider, type ProviderId } from '@/services/providers';
+import { useYtdlpStore } from '@/services/ytdlp';
+import { useQueueStore } from '@/store';
+import router from '@/router';
 import * as log from '@tauri-apps/plugin-log';
 import pLimit from 'p-limit';
 
@@ -111,6 +153,44 @@ import * as queue from '@/services/queue';
 import { submitExtensionDownload } from '@/services/extensionDownload';
 import * as Types from '@/types/shared.d';
 import i18n from '@/i18n';
+
+const provider = ref<ProviderId>('bilibili');
+const providerInput = ref('');
+const providerGeneration = ref(0);
+const batchVisible = ref(false);
+const batchInput = ref('');
+const batchBusy = ref(false);
+const batchRemaining = computed(
+  () => batchInput.value.split(/\r?\n/).filter((s) => s.trim()).length,
+);
+const ytTasks = useYtdlpStore();
+const biliTasks = useQueueStore();
+const activeTaskCount = computed(
+  () =>
+    Object.values(biliTasks.tasks).filter((t) => t.state === 'active').length +
+    Object.values(ytTasks.tasks).filter((t) =>
+      ['running', 'processing'].includes(t.state),
+    ).length,
+);
+async function parseBatch() {
+  const lines = batchInput.value
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!lines.length) return;
+  batchBusy.value = true;
+  try {
+    await search(lines[0]);
+    batchInput.value = lines.slice(1).join('\n');
+  } finally {
+    batchBusy.value = false;
+  }
+}
+async function searchYouTube() {
+  const query = v.searchInput.trim();
+  if (!query) return;
+  await search(`ytsearch20:${query}`);
+}
 
 const v = reactive({
   anim: {} as Animation,
@@ -227,6 +307,12 @@ async function search(overrideInput?: string) {
     v.pageIndex = 1;
     v.tab = -1;
     if (!input.length) return;
+    provider.value = chooseProvider(input, v.mediaType !== 'auto');
+    if (provider.value === 'ytdlp') {
+      providerInput.value = input;
+      providerGeneration.value += 1;
+      return;
+    }
     v.searching = true;
     const raw = await parseId(input, v.mediaType !== 'auto');
     const query = {

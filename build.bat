@@ -42,6 +42,10 @@ if exist "%OUT%" rmdir /s /q "%OUT%"
 mkdir "%OUT%"
 mkdir "%PORTABLE%"
 
+echo [1/4] Preparing verified multi-platform engines...
+node scripts\provider-tools.mjs
+if errorlevel 1 goto :failed
+
 echo [1/4] Installing dependencies...
 call npx -y pnpm@10.25.0 install --frozen-lockfile
 if errorlevel 1 goto :failed
@@ -86,6 +90,12 @@ copy /y "%BIN%\aria2c-%TARGET%.exe" "%PORTABLE%\aria2c.exe" >nul
 copy /y "%BIN%\ffmpeg-%TARGET%.exe" "%PORTABLE%\ffmpeg.exe" >nul
 copy /y "%BIN%\DanmakuFactory-%TARGET%.exe" "%PORTABLE%\DanmakuFactory.exe" >nul
 copy /y "native-host\target\release\conest-native-host.exe" "%PORTABLE%\conest-native-host.exe" >nul
+
+copy /y "src-tauri\resources\providers\yt-dlp.exe" "%PORTABLE%\yt-dlp.exe" >nul
+if errorlevel 1 goto :failed
+copy /y "src-tauri\resources\providers\deno.exe" "%PORTABLE%\deno.exe" >nul
+if errorlevel 1 goto :failed
+copy /y "src-tauri\resources\providers\versions.json" "%PORTABLE%\provider-versions.json" >nul
 
 echo Registering Native Messaging for this local test build...
 "%PORTABLE%\CONest.exe" --register-native-messaging-only
@@ -144,6 +154,9 @@ echo - aria2c.exe
 echo - ffmpeg.exe
 echo - DanmakuFactory.exe
 echo - conest-native-host.exe
+echo - yt-dlp.exe
+echo - deno.exe
+echo - provider-versions.json
 echo.
 echo Launch CONest.exe once after moving this portable folder so Native Messaging can refresh its current path.
 echo.

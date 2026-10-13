@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod errors;
 pub mod native_messaging;
+pub mod providers;
 
 use crate::queue::manager::clear_completed;
 use crate::services::local_api::{
@@ -54,6 +55,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let builder = Builder::<tauri::Wry>::new()
         // Then register them (separated by a comma)
         .commands(collect_commands![
+            providers::ytdlp::ytdlp_analyze,
+            providers::ytdlp::ytdlp_submit,
+            providers::ytdlp::ytdlp_tasks,
+            providers::ytdlp::ytdlp_control,
+            providers::ytdlp::ytdlp_settings,
+            providers::ytdlp::ytdlp_engine_info,
+            providers::ytdlp::ytdlp_update,
             // Essentials
             meta,
             init,

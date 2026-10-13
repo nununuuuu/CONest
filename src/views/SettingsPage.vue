@@ -17,7 +17,7 @@
           :class="{ active: tab === k }"
           @click="tab = k"
         >
-          <span>{{ $t('settings.' + k) }}</span>
+          <span>{{ k === 'engines' ? '下載引擎' : $t('settings.' + k) }}</span>
           <i :class="[tab === k ? 'fa-solid' : 'fa-light', v.icon]"></i>
           <label class="primary-color"></label>
         </button>
@@ -27,6 +27,7 @@
 </template>
 <script setup lang="ts">
 import { ref } from 'vue';
+import Engines from '@/components/SettingsPage/Engines.vue';
 
 import {
   General,
@@ -36,6 +37,7 @@ import {
   Format,
 } from '@/components/SettingsPage';
 const list = {
+  engines: { icon: 'fa-puzzle-piece', comp: Engines },
   general: { icon: 'fa-sliders', comp: General },
   storage: { icon: 'fa-database', comp: Storage },
   download: { icon: 'fa-download', comp: Download },

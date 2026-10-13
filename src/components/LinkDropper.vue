@@ -42,7 +42,7 @@ window.addEventListener('drop', async (e) => {
   for (const t of data.types) {
     try {
       const res = e.dataTransfer.getData(t);
-      await parseId(res);
+      if (!/^https?:\/\/\S+$/i.test(res.trim())) await parseId(res);
       text = res;
       break;
     } catch {

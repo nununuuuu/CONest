@@ -1,10 +1,30 @@
 <template>
-  <div>
+  <div class="workspace-page">
     <h1 class="w-full my-1.5">
       <i :class="[$fa.weight, 'fa-download']"></i>
       <span>{{ $t('down.title') }}</span>
     </h1>
-    <div class="flex w-full h-full mt-4 flex-1 gap-3 min-h-0">
+    <div class="workspace-list-tools">
+      <button
+        :class="{ 'workspace-primary': mode === 'unified' }"
+        @click="mode = 'unified'"
+      >
+        統一任務</button
+      ><button
+        :class="{ 'workspace-primary': mode === 'native' }"
+        @click="mode = 'native'"
+      >
+        Bilibili 排程與完整控制</button
+      ><button
+        :class="{ 'workspace-primary': mode === 'external' }"
+        @click="mode = 'external'"
+      >
+        多平台任務與日誌
+      </button>
+    </div>
+    <UnifiedTasks v-if="mode === 'unified'" />
+    <ProviderTasks v-else-if="mode === 'external'" />
+    <div v-else class="flex w-full h-full mt-4 flex-1 gap-3 min-h-0">
       <Transition mode="out-in">
         <Queue :key="tab" v-model="tab" />
       </Transition>
@@ -26,6 +46,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import UnifiedTasks from '@/components/UnifiedTasks.vue';
+import ProviderTasks from '@/components/ProviderTasks.vue';
+const mode = ref<'unified' | 'native' | 'external'>('unified');
 
 import { Queue } from '@/components/DownPage';
 

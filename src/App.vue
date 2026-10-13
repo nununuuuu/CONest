@@ -1,7 +1,7 @@
 <template>
-  <SideBar />
   <div id="main" @contextmenu.prevent="contextMenu?.init">
     <TitleBar />
+    <WorkspaceHeader />
     <Toaster v-bind="toasterOptions" />
     <ContextMenu ref="contextMenu" />
     <div class="loading"></div>
@@ -26,9 +26,11 @@ import { Toaster } from 'vue-sonner';
 import {
   TitleBar,
   ContextMenu,
-  SideBar,
   ComponentsWrapper,
 } from '@/components';
+
+import WorkspaceHeader from '@/components/WorkspaceHeader.vue';
+import { useYtdlpStore } from '@/services/ytdlp';
 
 import { useAppStore, useQueueStore, useSettingsStore, useUserStore } from '@/store';
 import { useComponentsStore, routeMap } from './store/components';
@@ -293,6 +295,8 @@ onMounted(async () => {
     }
   }
   app.inited = true;
+  // A yt-dlp-specific storage or tool failure must never block Bilibili startup.
+  void useYtdlpStore().initialize().catch(error => console.warn('yt-dlp initialization failed', error));
   await invoke('set_extension_frontend_ready', { ready: true });
   await pullExtensionRequests();
 });

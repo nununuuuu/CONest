@@ -28,7 +28,8 @@
       "resources/COPYING.aria2c": "COPYING.aria2c",
       "resources/COPYING.LGPLv3.ffmpeg": "COPYING.LGPLv3.ffmpeg",
       "resources/LICENSE.DanmakuFactory": "LICENSE.DanmakuFactory",
-      "resources/LICENSE.OpenSSL": "LICENSE.OpenSSL"
+      "resources/LICENSE.OpenSSL": "LICENSE.OpenSSL",
+      "resources/providers/": "providers/"
     },
     "windows": {
       "certificateThumbprint": null,
