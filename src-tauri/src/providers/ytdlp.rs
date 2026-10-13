@@ -228,6 +228,8 @@ fn common_args(settings: &EngineSettings) -> Result<Vec<String>> {
     let mut args = vec![
         "--ignore-config".into(),
         "--no-color".into(),
+        "--encoding".into(),
+        "utf-8".into(),
         "--socket-timeout".into(),
         "30".into(),
     ];

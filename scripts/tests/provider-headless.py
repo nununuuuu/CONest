@@ -3,14 +3,14 @@ Only command/Specta annotations and host integrations are substituted. The
 production parser, validation, command construction, subprocess, persistence
 and cancellation implementations are included unchanged in the test crate.
 """
-import pathlib,re,tempfile,subprocess,os,json,threading,http.server,socketserver,shutil
+import pathlib,re,tempfile,subprocess,os,json,threading,http.server,socketserver,shutil,sys,importlib.util
 root=pathlib.Path(__file__).resolve().parents[2]
-source=(root/'src-tauri/src/providers/ytdlp.rs').read_text()
+source=(root/'src-tauri/src/providers/ytdlp.rs').read_text(encoding='utf-8')
 source=re.sub(r'#\[(tauri::command\(async\)|specta::specta)\]\s*','',source)
 source=source.replace('use specta::Type;','').replace('use tauri::{Emitter, Manager};','use crate::tauri_plugin_opener;')
 source=re.sub(r',\s*Type\b','',source).replace('tauri::Url','url::Url').replace('tauri::async_runtime::spawn','tokio::spawn')
 path=pathlib.Path(tempfile.mkdtemp(prefix='conest-provider-'))
-(path/'src').mkdir();(path/'src/provider.rs').write_text(source)
+(path/'src').mkdir();(path/'src/provider.rs').write_text(source,encoding='utf-8')
 (path/'Cargo.toml').write_text('''[package]
 name="conest-provider-headless"
 version="0.1.0"
@@ -24,7 +24,7 @@ url="2"
 tokio={version="1",features=["full"]}
 tokio-util="0.7"
 log="0.4"
-''')
+''',encoding='utf-8')
 (path/'src/lib.rs').write_text(r'''
 pub type TauriResult<T> = anyhow::Result<T>;
 pub mod tauri_plugin_opener { pub fn open_path<P:AsRef<std::path::Path>>(_:P,_:Option<&str>)->anyhow::Result<()> { Ok(()) } }
@@ -96,7 +96,7 @@ pub mod provider;
 
  }
 }
-''')
+''',encoding='utf-8')
 print('Headless harness:',path,flush=True)
 # Serve a generated local source; no account or public website is needed.
 assets=path/'media';assets.mkdir()
@@ -112,8 +112,10 @@ if not yt:
  import shutil
  yt=shutil.which('yt-dlp')
 if not yt:
- wrapper=path/'yt-dlp';runtime=pathlib.Path('/workspace/scratch/dda14ca44b04/yt-test-runtime')
- wrapper.write_text('#!/usr/bin/env python3\nimport sys\nsys.path.insert(0,'+repr(str(runtime))+')\nfrom yt_dlp import main\nmain()\n');wrapper.chmod(0o755);yt=str(wrapper)
+ if os.name=='nt' or importlib.util.find_spec('yt_dlp') is None:
+  raise SystemExit('Install yt-dlp or set CONEST_TEST_YTDLP to its executable path.')
+ wrapper=path/'yt-dlp'
+ wrapper.write_text('#!'+sys.executable+'\nfrom yt_dlp import main\nmain()\n',encoding='utf-8');wrapper.chmod(0o755);yt=str(wrapper)
 env=os.environ.copy();env.update(CONEST_FIXTURE_URL=f'http://127.0.0.1:{server.server_address[1]}/source.mp4',CONEST_TEST_STORAGE=str(path/'storage'),CONEST_TEST_OUTPUT=str(path/'output'),CONEST_TEST_YTDLP=yt,CONEST_TEST_FFMPEG=ffmpeg,NO_PROXY='127.0.0.1,localhost')
 env['CARGO_TARGET_DIR']=str(root/'target/provider-headless')
 try:result=subprocess.run([os.environ.get('CONEST_TEST_CARGO','cargo'),'test','--manifest-path',str(path/'Cargo.toml'),'--','--nocapture'],env=env)

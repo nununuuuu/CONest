@@ -35,3 +35,7 @@ dist-ssr
 CONest-updater.key
 *.key
 !*.key.pub
+
+# Python test bytecode
+__pycache__/
+*.pyc
