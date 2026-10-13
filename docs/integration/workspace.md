@@ -30,9 +30,11 @@
 
 ## 打包與版本
 
-`build.bat` 在編譯前下載官方 yt-dlp、Deno 與 FFmpeg 官方下載頁列出的 BtbN 完整 GPL 建置，驗證 SHA-256 並測試執行檔版本。yt-dlp 使用完整版 FFmpeg/FFprobe，保存在 providers 子目錄，原有 Bilibili 精簡版 FFmpeg 保留不变。它們同時包含於安裝版資源與可攜資料夾，二進位檔案不提交進原始碼。
+`build.bat` 在編譯前下載官方 yt-dlp、Deno 與 GyanD/codexffmpeg Essentials 建置，驗證 SHA-256 並測試執行檔版本。yt-dlp 使用具備現有轉碼選項的 FFmpeg/FFprobe，保存在 providers 子目錄，原有 Bilibili 精簡版 FFmpeg 保留不变。它們同時包含於安裝版資源與可攜資料夾，二進位檔案不提交進原始碼。
 
-版本保持 `v0.0.0`。`Validate integrated workspace` 在 main 原始碼更新時建置 Windows 安裝版、可攜版與擴充套件，提供 Actions artifacts，不覆寫已發布的 Release。正式版本仍由既有發版流程根據 package.json 的 X.Y.Z 產生 vX.Y.Z。
+版本從 `v0.0.0` 遞進至 `v0.0.1`。`.github/workflows/` 只保留 `release.yml`。發布流程先檢查來源分流、編譯 Windows 安裝版與擴充套件，並使用打包引擎測試下載及 CPU 轉碼，通過後再發布。版本名稱根據 package.json 的 X.Y.Z 產生 vX.Y.Z。
+
+Release 分別提供安裝版、可攜版 ZIP、擴充套件 ZIP 與 SHA-256 校驗檔。使用者可選擇所需版本下載；不再產生包含相同程式的整包 dist-package ZIP 或額外 Actions artifact。執行 build.bat 仍保留原本 dist-package 目錄與所有輸出。
 
 ## 檢查
 

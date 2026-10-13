@@ -30,8 +30,9 @@ async function download(repo, assetName, output) {
   );
   if (!response.ok) throw new Error(`${repo}: ${response.status}`);
   const release = await response.json();
-  const asset = release.assets.find((a) => a.name === assetName);
+  const asset = release.assets.find((a) => assetName instanceof RegExp ? assetName.test(a.name) : a.name === assetName);
   if (!asset) throw new Error(`Missing release asset: ${repo}/${assetName}`);
+  assetName = asset.name;
   let digest = asset.digest?.startsWith('sha256:')
     ? asset.digest.slice(7)
     : null;
@@ -68,7 +69,7 @@ async function download(repo, assetName, output) {
 }
 const versions = join(dest, 'versions.json');
 const manifest = existsSync(versions)
-  ? JSON.parse(readFileSync(versions, 'utf8'))
+  ? JSON.parse(readFileSync(versions, 'utf8')).filter(item => item.repository !== 'BtbN/FFmpeg-Builds')
   : [];
 function remember(value) {
   const index = manifest.findIndex(
@@ -102,12 +103,12 @@ if (force || !existsSync(deno)) {
 }
 const ffmpeg = join(dest, 'ffmpeg.exe');
 const ffprobe = join(dest, 'ffprobe.exe');
-if (force || !existsSync(ffmpeg) || !existsSync(ffprobe)) {
+if (force || !existsSync(ffmpeg) || !existsSync(ffprobe) || !manifest.some(item => item.repository === 'GyanD/codexffmpeg' && item.asset.endsWith('-essentials_build.zip'))) {
   const zip = join(dest, 'ffmpeg.zip');
   remember(
     await download(
-      'BtbN/FFmpeg-Builds',
-      'ffmpeg-master-latest-win64-gpl.zip',
+      'GyanD/codexffmpeg',
+      /^ffmpeg-\d+(?:\.\d+)*-essentials_build\.zip$/,
       zip,
     ),
   );
@@ -115,7 +116,7 @@ if (force || !existsSync(ffmpeg) || !existsSync(ffprobe)) {
   const quote = (value) => `'${value.replaceAll("'", "''")}'`;
   const ps =
     `$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath ${quote(zip)} -DestinationPath ${quote(unpacked)} -Force; ` +
-    `$binary=Get-ChildItem -LiteralPath ${quote(unpacked)} -Recurse -File -Filter ffmpeg.exe | Select-Object -First 1; if(-not $binary){throw 'Full FFmpeg not found'}; ` +
+    `$binary=Get-ChildItem -LiteralPath ${quote(unpacked)} -Recurse -File -Filter ffmpeg.exe | Select-Object -First 1; if(-not $binary){throw 'FFmpeg not found'}; ` +
     `Copy-Item $binary.FullName ${quote(ffmpeg)} -Force; Copy-Item (Join-Path $binary.DirectoryName 'ffprobe.exe') ${quote(ffprobe)} -Force; ` +
     `$licenses=${quote(join(dest, 'licenses'))}; New-Item -ItemType Directory -Force $licenses | Out-Null; ` +
     `$items=@(Get-ChildItem -LiteralPath ${quote(unpacked)} -Recurse -File | Where-Object { $_.Name -match '^(LICENSE|COPYING)' }); if(-not $items.Count){throw 'FFmpeg license files missing'}; ` +
@@ -144,7 +145,7 @@ for (const encoder of [
   'pcm_s16le',
 ]) {
   if (!encoders.includes(encoder))
-    throw new Error(`Full FFmpeg missing required encoder: ${encoder}`);
+    throw new Error(`FFmpeg missing required encoder: ${encoder}`);
 }
 execFileSync(
   ffmpeg,
@@ -168,7 +169,7 @@ execFileSync(
 );
 writeFileSync(
   join(dest, 'licenses', 'SOURCES.md'),
-  'Full FFmpeg build: https://github.com/BtbN/FFmpeg-Builds\nFFmpeg source: https://github.com/FFmpeg/FFmpeg\nBuild versions and archive SHA-256: ../../provider-versions.json in the portable package.\n',
+  'FFmpeg essentials build: https://github.com/GyanD/codexffmpeg\nFFmpeg source: https://github.com/FFmpeg/FFmpeg\nBuild versions and archive SHA-256: ../../provider-versions.json in the portable package.\n',
 );
 for (const binary of [yt, deno, ffmpeg, ffprobe]) {
   if (readFileSync(binary).subarray(0, 2).toString() !== 'MZ')

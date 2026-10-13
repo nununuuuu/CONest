@@ -26,7 +26,7 @@
       </div></label
     >
     <label
-      >轉碼 FFmpeg（留空使用隨附完整版）
+      >轉碼 FFmpeg（留空使用隨附轉碼引擎）
       <div>
         <input v-model="yt.settings.ffmpeg" type="text" /><button
           @click="pick('ffmpeg')"

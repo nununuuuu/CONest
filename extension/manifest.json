@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CONest Download Bridge",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "CONest Bilibili download sidebar with local task list.",
   "permissions": [
     "storage",

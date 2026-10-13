@@ -65,8 +65,27 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-build
+          cache-on-failure: true
+          workspaces: |
+            src-tauri
+            native-host
+
+      - name: Check engine preparation and provider routing
+        shell: pwsh
+        run: |
+          node --check scripts/provider-tools.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-strip-types --test scripts/tests/provider-routing.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build using build.bat
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $text = Get-Content -Raw -Encoding UTF8 build.bat
           $text = [regex]::Replace($text, '(?m)^\s*pause\s*$', '')
@@ -74,7 +93,15 @@ jobs:
           cmd /c build-ci.bat
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Verify and package build outputs
+      - name: Test packaged media engines
+        shell: pwsh
+        run: |
+          $env:CONEST_TEST_YTDLP = (Resolve-Path 'dist-package/CONest-Portable/yt-dlp.exe').Path
+          $env:CONEST_TEST_FFMPEG = (Resolve-Path 'dist-package/CONest-Portable/providers/ffmpeg.exe').Path
+          python scripts/tests/provider-headless.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify and package release outputs
         shell: pwsh
         run: |
           $required = @(
@@ -84,7 +111,12 @@ jobs:
             'dist-package/CONest-Portable/aria2c.exe',
             'dist-package/CONest-Portable/ffmpeg.exe',
             'dist-package/CONest-Portable/DanmakuFactory.exe',
-            'dist-package/CONest-Portable/conest-native-host.exe'
+            'dist-package/CONest-Portable/conest-native-host.exe',
+            'dist-package/CONest-Portable/yt-dlp.exe',
+            'dist-package/CONest-Portable/deno.exe',
+            'dist-package/CONest-Portable/providers/ffmpeg.exe',
+            'dist-package/CONest-Portable/providers/ffprobe.exe',
+            'dist-package/CONest-Portable/provider-versions.json'
           )
           foreach ($path in $required) {
             if (-not (Test-Path $path) -or (Get-Item $path).Length -eq 0) {
@@ -94,19 +126,12 @@ jobs:
           New-Item -ItemType Directory -Force release-assets | Out-Null
           Copy-Item dist-package/CONest-Setup.exe release-assets/
           Copy-Item dist-package/CONest-Extension.zip release-assets/
-          Compress-Archive -Path 'dist-package/CONest-Portable/*' -DestinationPath 'release-assets/CONest-Portable.zip' -Force
-          Compress-Archive -Path 'dist-package' -DestinationPath 'release-assets/CONest-dist-package.zip' -Force
+          Compress-Archive -Path 'dist-package/CONest-Portable/*' -DestinationPath 'release-assets/CONest-Portable.zip' -CompressionLevel Optimal -Force
           Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)"
           } | Set-Content -Encoding ascii release-assets/SHA256SUMS.txt
-
-      - name: Preserve build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: CONest-${{ steps.version.outputs.tag }}-release-assets
-          path: release-assets/*
-          if-no-files-found: error
+          Get-ChildItem release-assets -File | Select-Object Name,Length
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -115,9 +140,10 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: CONest ${{ steps.version.outputs.tag }}
           body: |
-            Built from the release source using build.bat.
-            CONest-dist-package.zip includes the complete dist-package directory.
-            CONest-Setup.exe, CONest-Portable.zip and CONest-Extension.zip are also available separately.
+            Built and tested from source using build.bat.
+            Choose CONest-Setup.exe for installation or CONest-Portable.zip for a portable app.
+            CONest-Extension.zip contains the browser extension.
+            The portable package contains the required media engines and licenses.
             SHA256SUMS.txt contains checksums for the downloads.
           draft: false
           prerelease: false
