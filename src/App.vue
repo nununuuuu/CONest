@@ -110,7 +110,7 @@ async function processExtensionRequest(request: ExtensionRequest) {
     }
   } catch (e) {
     new AppError(e, {
-      name: request.tab_id == null
+      name: (request.tab_id === null || request.tab_id === undefined)
         ? 'ExtensionRequest'
         : `ExtensionRequest (tab ${request.tab_id})`,
     }).handle();
