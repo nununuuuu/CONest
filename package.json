@@ -33,7 +33,8 @@
     "format:check": "prettier --check .",
     "ci:updatelog": "node scripts/updatelog.mjs",
     "ci:binaries": "node scripts/binaries.mjs",
-    "ci:close-issues": "node scripts/close-issues.mjs"
+    "ci:close-issues": "node scripts/close-issues.mjs",
+    "test:layout": "node scripts/tests/workspace-layout.mjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.10.2",
