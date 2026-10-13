@@ -59,7 +59,7 @@ await writeFile(path.join(fixture,'main.js'),[
 "window.fixture={search:async(input,loading=false)=>{fixtureState.loading=loading;return page.value.search(input);},theme:async t=>{document.documentElement.className=t;await nextTick();}};"
 ].join('\n'));
 const names=['@/store','@/services/ytdlp','@/services/backend','@/services/utils','@/services/media','@/services/queue','@/services/extensionDownload','@/router','@/i18n','@tauri-apps/plugin-dialog','@tauri-apps/plugin-log','@tauri-apps/plugin-opener'];
-const server=await createServer({configFile:false,root,logLevel:'warn',plugins:[vue(),tailwindcss()],
+const server=await createServer({configFile:false,root,logLevel:'warn',optimizeDeps:{entries:[path.join(fixture,'index.html')]},plugins:[vue(),tailwindcss()],
 resolve:{alias:[
 ...names.map(find=>({find:new RegExp('^'+find.replace(/[.*+?^{}()|[\]\\$]/g,'\\$&')+'$'),replacement:mock})),
 {find:/^@\/components$/,replacement:path.join(fixture,'components.js')},
@@ -111,7 +111,7 @@ try {
      assert.ok(m.scrollHeight>m.clientHeight,'Settings must scroll');
      assert.ok(m.footer.bottom<=m.dock.y+1,'Queue button hidden');
     }
-    if(scenario==='native') assert.ok(m.native.h>=100,'Native list lost scroll area');
+    if(scenario==='native') assert.ok(m.native.h>=100,'Native list lost scroll area: '+JSON.stringify(m));
    } else assert.ok(m.settings.y>=m.list.bottom-1,'Stacked panels overlap');
    if(scenario==='playlist') assert.equal(await page.locator('.workspace-settings-footer button').isEnabled(),true);
    console.log('PASS',theme,size.width+'x'+size.height,scenario);

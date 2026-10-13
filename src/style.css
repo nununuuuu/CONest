@@ -393,3 +393,19 @@ html.dark :is(button, input):hover { filter: brightness(1.08); }
 .workspace-page > h1 { flex-shrink: 0; }
 .workspace-page > .flex > .tab { flex-shrink: 0; }
 .workspace-page > .flex > .tab button { max-width: 170px; }
+
+@media (min-width: 761px) and (max-height: 680px) {
+  #main > .workspace-page { padding: 12px 16px; }
+  .workspace-header { min-height: 54px; }
+  .workspace-heading { margin-bottom: 10px; }
+  .workspace-heading h1 { font-size: 22px; }
+  .workspace-import { padding: 6px; }
+  .workspace-import > input { height: 34px; }
+  .workspace-import > .workspace-primary { height: 34px; padding: 7px 12px; }
+  .native-workbench { margin-top: 12px; }
+  .workspace-panel-heading { padding: 10px 0; }
+  .workspace-media-summary { max-height: 108px; overflow: auto; }
+  .native-list-frame { padding: 8px 0; }
+  .workspace-dock { margin-top: 8px; min-height: 42px; padding: 5px 12px; }
+  .provider-workbench { padding-top: 12px; }
+}
