@@ -5,7 +5,10 @@
         <h1>匯入與選取</h1>
         <p class="desc">匯入連結、選取項目，再交給下載佇列。</p>
       </div>
-      <button @click="batchVisible = !batchVisible">批次貼上</button>
+      <div class="workspace-heading-actions">
+        <button @click="searchYouTube">YouTube 搜尋</button>
+        <button @click="batchVisible = !batchVisible">批次貼上</button>
+      </div>
     </div>
     <div class="workspace-import">
       <input
@@ -36,7 +39,6 @@
       ></textarea
       ><button :disabled="batchBusy" @click="parseBatch">
         {{ batchBusy ? '處理中…' : '解析下一筆' }}</button
-      ><button @click="searchYouTube">YouTube 搜尋</button
       ><span class="desc">{{ batchRemaining }} 筆待解析</span>
     </div>
     <YtdlpWorkbench
@@ -44,84 +46,60 @@
       :input="providerInput"
       :generation="providerGeneration"
     />
-    <template v-else>
-      <Transition>
-        <Empty
-          v-if="!v.listActive && !v.searching"
-          class="absolute"
-          :text="$t('search.suggest')"
-        />
-      </Transition>
-      <Transition>
-        <img
-          v-if="v.searching"
-          src="@/assets/img/searching.png"
-          class="absolute"
-        />
-      </Transition>
-      <Transition>
-        <Empty
-          v-if="!v.searching && v.listActive && !v.mediaInfo.list?.length"
-          class="absolute"
-          :text="$t('empty')"
-        />
-      </Transition>
-      <Transition>
-        <div
-          v-if="v.listActive"
-          class="flex flex-col flex-1 mt-3 w-full min-h-0"
-        >
-          <MediaInfo :info="v.mediaInfo" />
-          <div class="flex mt-3 gap-3 flex-1 min-h-0">
-            <Transition name="slide">
-              <MediaList
-                v-if="!v.searching && v.mediaInfo.list.length"
-                ref="mediaList"
-                v-model="v.checkboxs"
-                :list="v.mediaInfo.list"
-                :edge="v.mediaInfo.edge"
-                :update-edge="updateEdge"
-              />
-            </Transition>
-            <div class="workspace-inspector bili-inspector">
-              <h3>輸出設定</h3>
-              <p class="desc">
-                所有原有畫質、音軌、編碼、彈幕、字幕、封面與附加內容，均保留在完整設定中。
-              </p>
-              <button
-                v-for="(i, k) in buttons"
-                :key="k"
-                class="shrink-0"
-                @click="i.action"
-              >
-                <i :class="[$fa.weight, i.icon]"></i>
-                <span>{{ $t(i.text) }}</span>
-              </button>
-              <template v-if="v.mediaInfo.pn">
-                <span>{{ $t('page') }}</span>
-                <input
-                  v-model="v.pageIndex"
-                  type="number"
-                  @input="handlePage"
-                />
-              </template>
-              <div class="tab overflow-auto">
-                <button
-                  v-for="(t, k) in v.mediaInfo.sections?.tabs"
-                  :key="k"
-                  class="w-full!"
-                  :class="{ active: v.tab === t.id }"
-                  @click="updateTab(t.id)"
-                >
-                  <span class="truncate">{{ t.name }}</span>
-                  <label class="primary-color"></label>
-                </button>
-              </div>
-            </div>
-          </div>
+    <div v-else class="workspace-columns native-workbench">
+      <section class="workspace-content native-content" aria-label="Bilibili 內容清單">
+        <div class="workspace-panel-heading">
+          <h2>內容清單</h2>
+          <span class="desc">{{ v.listActive ? v.mediaInfo.list.length : 0 }} 項 · 已選 {{ v.checkboxs.length }} 項</span>
         </div>
-      </Transition>
-    </template>
+        <MediaInfo v-if="v.listActive" :info="v.mediaInfo" />
+        <div class="native-list-frame">
+          <div v-if="v.searching" class="workspace-empty" role="status">
+            <span class="workspace-spinner" aria-hidden="true"></span>
+            <p>正在解析內容…</p>
+          </div>
+          <Empty v-else-if="!v.listActive" :text="$t('search.suggest')" />
+          <Empty v-else-if="!v.mediaInfo.list.length" :text="$t('empty')" />
+          <MediaList
+            v-else
+            ref="mediaList"
+            v-model="v.checkboxs"
+            :list="v.mediaInfo.list"
+            :edge="v.mediaInfo.edge"
+            :update-edge="updateEdge"
+          />
+        </div>
+      </section>
+      <aside class="workspace-inspector bili-inspector" aria-label="Bilibili 輸出設定">
+        <h3>輸出設定</h3>
+        <p class="desc">選取項目後開啟完整設定，調整畫質、音軌、編碼、彈幕、字幕、封面與附加內容。</p>
+        <button
+          v-for="(i, k) in buttons"
+          :key="k"
+          :disabled="!v.listActive || v.searching || !v.mediaInfo.list.length || (k === 0 && !v.checkboxs.length)"
+          @click="i.action"
+        >
+          <i :class="[$fa.weight, i.icon]"></i>
+          <span>{{ $t(i.text) }}</span>
+        </button>
+        <template v-if="v.mediaInfo.pn">
+          <label for="bili-page">{{ $t('page') }}</label>
+          <input id="bili-page" v-model="v.pageIndex" type="number" min="1" @input="handlePage" />
+        </template>
+        <div v-if="v.mediaInfo.sections?.tabs?.length" class="tab">
+          <button
+            v-for="(t, k) in v.mediaInfo.sections.tabs"
+            :key="k"
+            class="w-full!"
+            :class="{ active: v.tab === t.id }"
+            @click="updateTab(t.id)"
+          >
+            <span class="truncate">{{ t.name }}</span>
+            <label class="primary-color"></label>
+          </button>
+        </div>
+      </aside>
+    </div>
     <div class="workspace-dock">
       <span class="desc"
         >{{ activeTaskCount }} 項進行中 · 原生 Bilibili

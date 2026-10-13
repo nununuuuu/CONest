@@ -1,7 +1,7 @@
 <template>
   <div
     data-tauri-drag-region
-    class="z-1000000000 h-7.5 bg-transparent"
+    class="workspace-titlebar z-1000000000 h-7.5 bg-transparent"
     @dblclick="appWindow.toggleMaximize()"
   >
     <div v-if="osType() !== 'macos'" class="relative float-right">

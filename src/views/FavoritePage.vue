@@ -1,11 +1,11 @@
 <template>
-  <div>
+  <div class="workspace-page">
     <h1 class="w-full mt-1.5 mb-auto">
       <i :class="[$fa.weight, 'fa-star']"></i>
       <span>{{ $t('favoritePage.title') }}</span>
     </h1>
 
-    <div class="flex w-full h-full mt-5.5 flex-1 gap-3 min-h-0">
+    <div class="flex w-full flex-1 mt-5.5 flex-1 gap-3 min-h-0">
       <Transition name="slide">
         <VList
           v-if="v.listActive"

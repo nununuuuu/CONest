@@ -1,21 +1,22 @@
 <template>
-  <div>
+  <div class="workspace-page">
     <h1 class="w-full mt-1.5 mb-auto">
       <i :class="[$fa.weight, 'fa-clock']"></i>
       <span>{{ $t('history.title') }}</span>
     </h1>
-    <div class="flex w-full h-full mt-5.5 flex-1 gap-3 min-h-0">
+    <div class="flex w-full flex-1 mt-5.5 flex-1 gap-3 min-h-0">
       <Transition name="slide">
         <VList
           v-if="v.listActive"
           v-slot="{ item }"
           :data="v.list?.length ? v.list : ['empty']"
+          class="flex-1 min-w-0"
         >
           <div>
             <Empty v-if="item === 'empty'" :text="$t('empty')" />
             <div
               v-else
-              class="flex gap-4 p-3 rounded-lg my-px bg-(--block-color) text-sm h-30"
+              class="relative flex gap-4 p-3 rounded-lg my-px bg-(--block-color) text-sm h-30 min-w-0"
             >
               <div class="relative flex rounded-lg min-w-40 overflow-hidden">
                 <Image

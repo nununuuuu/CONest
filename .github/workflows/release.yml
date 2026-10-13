@@ -82,6 +82,19 @@ jobs:
           node --experimental-strip-types --test scripts/tests/provider-routing.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Verify workspace layout in browser
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check scripts/tests/workspace-layout.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:CONEST_UI_QA_MODULE = Join-Path $env:RUNNER_TEMP 'conest-ui-qa'
+          npm install --prefix $env:CONEST_UI_QA_MODULE --no-audit --no-fund playwright@1.56.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/tests/workspace-layout.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build using build.bat
         shell: pwsh
         env:

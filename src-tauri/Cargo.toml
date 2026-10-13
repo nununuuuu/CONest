@@ -1,6 +1,6 @@
 [package]
 name = "conest"
-version = "0.0.1"
+version = "0.0.2"
 description = "A cross-platform bilibili toolbox"
 authors = ["btjawa"]
 edition = "2021"

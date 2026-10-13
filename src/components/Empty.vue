@@ -1,10 +1,9 @@
 <template>
-  <div class="flex mx-auto my-auto flex-col items-center pointer-events-none">
-    <img src="/src/assets/img/empty.png" class="w-64 mb-4" />
-    <span class="desc">{{ text }}</span>
+  <div class="workspace-empty" role="status">
+    <span class="workspace-empty-mark" aria-hidden="true">＋</span>
+    <p>{{ text }}</p>
   </div>
 </template>
-
 <script setup lang="ts">
 defineProps<{ text: string }>();
 </script>

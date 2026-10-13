@@ -1,5 +1,5 @@
 <template>
-  <VList ref="vlist" v-slot="{ item, index }" :data="list">
+  <VList class="workspace-native-list" ref="vlist" v-slot="{ item, index }" :data="list">
     <div>
       <div
         v-if="edge"
@@ -35,7 +35,7 @@
         </div>
         <span class="min-w-6">{{ index + 1 }}</span>
         <div class="w-px h-full bg-(--split-color) mx-4"></div>
-        <span class="flex flex-1 truncate text">{{ item.title }}</span>
+        <span class="flex flex-1 min-w-0 truncate text">{{ item.title }}</span>
       </div>
       <div v-if="edge" class="w-full flex justify-center gap-1 mt-2">
         <template v-for="v in edge.choices" :key="v.id">

@@ -24,7 +24,7 @@
     </div>
     <UnifiedTasks v-if="mode === 'unified'" />
     <ProviderTasks v-else-if="mode === 'external'" />
-    <div v-else class="flex w-full h-full mt-4 flex-1 gap-3 min-h-0">
+    <div v-else class="flex w-full mt-4 flex-1 gap-3 min-h-0 min-w-0">
       <Transition mode="out-in">
         <Queue :key="tab" v-model="tab" />
       </Transition>

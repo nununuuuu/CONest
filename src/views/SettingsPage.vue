@@ -1,12 +1,12 @@
 <template>
-  <div>
+  <div class="workspace-page">
     <h1 class="w-full my-1.5">
       <i :class="[$fa.weight, 'fa-gear']"></i>
       <span>{{ $t('settings.title') }}</span>
     </h1>
-    <div class="flex w-full h-full mt-4 gap-4 min-h-0">
+    <div class="flex w-full flex-1 mt-4 gap-4 min-h-0">
       <Transition mode="out-in">
-        <div :key="tab" class="flex flex-col flex-1 overflow-auto pr-3 pb-6">
+        <div :key="tab" class="flex flex-col flex-1 min-w-0 min-h-0 overflow-auto pr-3 pb-6">
           <component :is="list[tab].comp" :key="tab" />
         </div>
       </Transition>

@@ -2,7 +2,7 @@
   <div class="provider-workbench">
     <div class="workspace-heading">
       <div>
-        <h2>{{ collection?.title || '多平台下載' }}</h2>
+        <h2 class="workspace-collection-title">{{ collection?.title || '多平台下載' }}</h2>
         <p class="desc">
           {{
             collection
@@ -11,11 +11,11 @@
           }}
         </p>
       </div>
-      <label
+      <div class="workspace-heading-actions"><label
         ><input v-model="playlist" type="checkbox" />解析合輯 / 播放清單</label
       ><button :disabled="busy" @click="analyze">
         {{ busy ? '解析中…' : '重新解析' }}
-      </button>
+      </button></div>
     </div>
     <p v-if="error" class="provider-error" role="alert">{{ error }}</p>
     <div class="workspace-columns">
@@ -73,7 +73,8 @@
           <pre class="text">{{ collection.warnings }}</pre>
         </details>
       </section>
-      <aside class="workspace-inspector">
+      <aside class="workspace-inspector provider-inspector">
+        <div class="workspace-settings-scroll">
         <h3>輸出設定</h3>
         <label
           >下載內容<select v-model="options.mode">
@@ -205,13 +206,14 @@
             SponsorBlock 贊助片段（支援時）</label
           >
         </details>
-        <button
+        </div>
+        <div class="workspace-settings-footer"><button
           class="workspace-primary"
           :disabled="!selected.length || submitting || busy"
           @click="submit"
         >
           {{ submitting ? '建立任務中…' : `加入佇列 · ${selected.length} 項` }}
-        </button>
+        </button></div>
       </aside>
     </div>
   </div>

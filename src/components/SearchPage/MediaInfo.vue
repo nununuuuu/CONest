@@ -1,15 +1,15 @@
 <template>
   <div
-    class="flex w-full min-h-36 h-36 bg-(--block-color) rounded-lg p-4 gap-4"
+    class="workspace-media-summary"
   >
-    <Image :src="info.nfo.thumbs[0]?.url" :height="112" :ratio="16 / 10" />
+    <Image :src="info.nfo.thumbs[0]?.url" :height="64" :ratio="16 / 10" class="workspace-summary-cover" />
     <div class="text flex flex-col gap-1 flex-1 min-w-0">
-      <div class="flex gap-2">
+      <div class="flex gap-3 min-w-0">
         <div class="relative flex flex-col gap-1 flex-1 min-w-0">
           <h2 class="text-lg w-full truncate">
             {{ info.nfo.showtitle ?? $t('mediaType.' + info.type) }}
           </h2>
-          <div class="text-xs flex flex-wrap items-center text-(--desc-color)">
+          <div class="workspace-media-stats">
             <template v-for="(v, k) in info.nfo.stat" :key="k">
               <template v-if="typeof v === 'number'">
                 <i class="bcc-iconfont" :class="iconMap[k]"></i>
@@ -33,7 +33,7 @@
           }}</span>
         </a>
       </div>
-      <span class="overflow-auto text-sm whitespace-pre-wrap">{{
+      <span class="workspace-media-intro">{{
         info.nfo.intro
       }}</span>
     </div>
